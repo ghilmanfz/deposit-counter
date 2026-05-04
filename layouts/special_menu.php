@@ -19,6 +19,7 @@
     <ul class="nav submenu">
        <li><a href="product.php">Manage product</a> </li>
        <li><a href="add_product.php">Add product</a> </li>
+         <li><a href="stock_history.php">Stock history</a> </li>
    </ul>
   </li>
   <li>

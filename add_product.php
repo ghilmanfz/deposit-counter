@@ -5,6 +5,8 @@
   page_require_level(2);
   $all_categories = find_all('categories');
   $all_photo = find_all('media');
+  $all_clients = find_active_clients();
+  $msg = $session->msg();
 ?>
 <?php
  if(isset($_POST['add_product'])){
@@ -13,9 +15,13 @@
    if(empty($errors)){
      $p_name  = remove_junk($db->escape($_POST['product-title']));
      $p_cat   = remove_junk($db->escape($_POST['product-categorie']));
-     $p_qty   = remove_junk($db->escape($_POST['product-quantity']));
+     $p_qty   = (int)$db->escape($_POST['product-quantity']);
      $p_buy   = remove_junk($db->escape($_POST['buying-price']));
      $p_sale  = remove_junk($db->escape($_POST['saleing-price']));
+     $client_id = isset($_POST['product-client']) && $_POST['product-client'] !== ''
+       ? (int)$db->escape($_POST['product-client'])
+       : 0;
+     $client_value = $client_id > 0 ? "'".$db->escape($client_id)."'" : "NULL";
      if (is_null($_POST['product-photo']) || $_POST['product-photo'] === "") {
        $media_id = '0';
      } else {
@@ -23,16 +29,31 @@
      }
      $date    = make_date();
      $query  = "INSERT INTO products (";
-     $query .=" name,quantity,buy_price,sale_price,categorie_id,media_id,date";
+     $query .=" name,quantity,buy_price,sale_price,categorie_id,client_id,media_id,date";
      $query .=") VALUES (";
-     $query .=" '{$p_name}', '{$p_qty}', '{$p_buy}', '{$p_sale}', '{$p_cat}', '{$media_id}', '{$date}'";
+     $query .=" '{$p_name}', '{$p_qty}', '{$p_buy}', '{$p_sale}', '{$p_cat}', {$client_value}, '{$media_id}', '{$date}'";
      $query .=")";
-     $query .=" ON DUPLICATE KEY UPDATE name='{$p_name}'";
      if($db->query($query)){
+       $product_id = $db->insert_id();
+       if($p_qty > 0){
+         $movement_id = record_stock_movement($product_id, 'in', $p_qty, 0, $p_qty, array(
+           'client_id' => $client_id,
+           'reference_type' => 'product',
+           'reference_id' => $product_id,
+           'note' => 'Initial stock entry',
+           'created_at' => $date
+         ));
+
+         if(!$movement_id){
+           delete_by_id('products', $product_id);
+           $session->msg('d',' Product saved but stock history failed to save.');
+           redirect('add_product.php', false);
+         }
+       }
        $session->msg('s',"Product added ");
        redirect('add_product.php', false);
      } else {
-       $session->msg('d',' Sorry failed to added!');
+       $session->msg('d',' Sorry failed to add product. Check duplicate title or database schema.');
        redirect('product.php', false);
      }
 
@@ -87,6 +108,15 @@
                     <?php  foreach ($all_photo as $photo): ?>
                       <option value="<?php echo (int)$photo['id'] ?>">
                         <?php echo $photo['file_name'] ?></option>
+                    <?php endforeach; ?>
+                    </select>
+                  </div>
+                  <div class="col-md-6" style="margin-top:10px;">
+                    <select class="form-control" name="product-client">
+                      <option value="">Internal stock / no client</option>
+                    <?php  foreach ($all_clients as $client): ?>
+                      <option value="<?php echo (int)$client['id'] ?>">
+                        <?php echo remove_junk($client['name']) ?></option>
                     <?php endforeach; ?>
                     </select>
                   </div>

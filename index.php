@@ -1,7 +1,8 @@
 <?php
   ob_start();
   require_once('includes/load.php');
-  if($session->isUserLoggedIn(true)) { redirect('home.php', false);}
+  $msg = $session->msg();
+  if($session->isUserLoggedIn(true)) { redirect_by_user_level(); }
 ?>
 <?php include_once('layouts/header.php'); ?>
 <div class="login-page">

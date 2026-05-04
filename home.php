@@ -1,7 +1,9 @@
 <?php
   $page_title = 'Home Page';
   require_once('includes/load.php');
+  $msg = $session->msg();
   if (!$session->isUserLoggedIn(true)) { redirect('index.php', false);}
+  if (is_client_user()) { redirect('client_dashboard.php', false); }
 ?>
 <?php include_once('layouts/header.php'); ?>
 <div class="row">

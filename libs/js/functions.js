@@ -2,6 +2,7 @@
 function suggetion() {
 
      $('#sug_input').keyup(function(e) {
+         $('#selected_product_id').val('');
 
          var formData = {
              'product_name' : $('input[name=title]').val()
@@ -22,7 +23,8 @@ function suggetion() {
                    $('#result').html(data).fadeIn();
                    $('#result li').click(function() {
 
-                     $('#sug_input').val($(this).text());
+                                         $('#sug_input').val($(this).attr('data-product-title'));
+                                         $('#selected_product_id').val($(this).attr('data-product-id'));
                      $('#result').fadeOut(500);
 
                    });
@@ -45,7 +47,8 @@ function suggetion() {
  }
   $('#sug-form').submit(function(e) {
       var formData = {
-          'p_name' : $('input[name=title]').val()
+          'p_name' : $('input[name=title]').val(),
+          'p_id' : $('#selected_product_id').val()
       };
         // process the form
         $.ajax({

@@ -2,13 +2,17 @@
   $page_title = 'My profile';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
-   page_require_level(3);
+   page_require_level(4);
 ?>
   <?php
+  $current_user = current_user();
   $user_id = (int)$_GET['id'];
   if(empty($user_id)):
-    redirect('home.php',false);
+    redirect_by_user_level();
   else:
+    if(is_client_user($current_user) && $user_id !== (int)$current_user['id']):
+      redirect('profile.php?id='.(int)$current_user['id'],false);
+    endif;
     $user_p = find_by_id('users',$user_id);
   endif;
 ?>

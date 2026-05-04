@@ -6,14 +6,14 @@ $username = remove_junk($_POST['username']);
 $password = remove_junk($_POST['password']);
 
 if(empty($errors)){
-  $user_id = authenticate($username, $password);
-  if($user_id){
+  $user = authenticate_v2($username, $password);
+  if($user){
     //create session with id
-     $session->login($user_id);
+     $session->login($user['id']);
     //Update Sign in time
-     updateLastLogIn($user_id);
+     updateLastLogIn($user['id']);
      $session->msg("s", "Welcome to Inventory Management System");
-     redirect('admin.php',false);
+     redirect_by_user_level($user);
 
   } else {
     $session->msg("d", "Sorry Username/Password incorrect.");

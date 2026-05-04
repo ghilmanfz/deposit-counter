@@ -45,6 +45,7 @@
       <ul class="nav submenu">
          <li><a href="sales.php">Manage Sales</a> </li>
          <li><a href="add_sale.php">Add Sale</a> </li>
+         <li><a href="stock_history.php">Stock History</a> </li>
      </ul>
   </li>
   <li>

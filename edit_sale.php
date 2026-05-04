@@ -3,6 +3,7 @@
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
    page_require_level(3);
+  $msg = $session->msg();
 ?>
 <?php
 $sale = find_by_id('sales',(int)$_GET['id']);
@@ -11,7 +12,7 @@ if(!$sale){
   redirect('sales.php');
 }
 ?>
-<?php $product = find_by_id('products',$sale['product_id']); ?>
+<?php $product = find_product_details($sale['product_id']); ?>
 <?php
 
   if(isset($_POST['update_sale'])){
@@ -23,16 +24,82 @@ if(!$sale){
           $s_total   = $db->escape($_POST['total']);
           $date      = $db->escape($_POST['date']);
           $s_date    = date("Y-m-d", strtotime($date));
+          $movement_date = $s_date.' '.date('H:i:s');
+          $old_qty = (int)$sale['qty'];
+          $new_qty = (int)$s_qty;
+          $available_qty = (int)$product['quantity'] + $old_qty;
+          $stock_change = false;
+          $movement_type = '';
+          $movement_qty = 0;
+          $movement_note = '';
+
+          if($new_qty <= 0){
+            $session->msg('d',' Quantity must be greater than zero.');
+            redirect('edit_sale.php?id='.(int)$sale['id'],false);
+          }
+
+          if($new_qty > $available_qty){
+            $session->msg('d',' Quantity exceeds available stock.');
+            redirect('edit_sale.php?id='.(int)$sale['id'],false);
+          }
+
+          if($new_qty > $old_qty){
+            $movement_qty = $new_qty - $old_qty;
+            $stock_change = update_product_qty($movement_qty, $p_id);
+            $movement_type = 'out';
+            $movement_note = 'Sale quantity increased';
+          } elseif($new_qty < $old_qty){
+            $movement_qty = $old_qty - $new_qty;
+            $stock_change = increase_product_qty($movement_qty, $p_id);
+            $movement_type = 'in';
+            $movement_note = 'Sale quantity reduced';
+          }
+
+          if($movement_qty > 0 && !$stock_change){
+            $session->msg('d',' Failed to update stock.');
+            redirect('edit_sale.php?id='.(int)$sale['id'],false);
+          }
 
           $sql  = "UPDATE sales SET";
           $sql .= " product_id= '{$p_id}',qty={$s_qty},price='{$s_total}',date='{$s_date}'";
           $sql .= " WHERE id ='{$sale['id']}'";
           $result = $db->query($sql);
-          if( $result && $db->affected_rows() === 1){
-                    update_product_qty($s_qty,$p_id);
+          if($result){
+                    if($movement_qty > 0){
+                      $movement_id = record_stock_movement($p_id, $movement_type, $movement_qty, $stock_change['before'], $stock_change['after'], array(
+                        'client_id' => (int)$product['client_id'],
+                        'reference_type' => 'sale_adjustment',
+                        'reference_id' => (int)$sale['id'],
+                        'note' => $movement_note,
+                        'created_at' => $movement_date
+                      ));
+
+                      if(!$movement_id){
+                        if($movement_type === 'out'){
+                          increase_product_qty($movement_qty, $p_id);
+                        } else {
+                          update_product_qty($movement_qty, $p_id);
+                        }
+
+                        $rollback  = "UPDATE sales SET";
+                        $rollback .= " product_id='".$db->escape((int)$sale['product_id'])."',qty='".$db->escape((int)$sale['qty'])."',";
+                        $rollback .= "price='".$db->escape($sale['price'])."',date='".$db->escape($sale['date'])."'";
+                        $rollback .= " WHERE id='".$db->escape((int)$sale['id'])."' LIMIT 1";
+                        $db->query($rollback);
+                        $session->msg('d',' Failed to save stock history.');
+                        redirect('edit_sale.php?id='.(int)$sale['id'], false);
+                      }
+                    }
                     $session->msg('s',"Sale updated.");
                     redirect('edit_sale.php?id='.$sale['id'], false);
                   } else {
+                    if($movement_qty > 0){
+                      if($movement_type === 'out'){
+                        increase_product_qty($movement_qty, $p_id);
+                      } else {
+                        update_product_qty($movement_qty, $p_id);
+                      }
+                    }
                     $session->msg('d',' Sorry failed to updated!');
                     redirect('sales.php', false);
                   }
@@ -76,8 +143,10 @@ if(!$sale){
               <tr>
               <form method="post" action="edit_sale.php?id=<?php echo (int)$sale['id']; ?>">
                 <td id="s_name">
-                  <input type="text" class="form-control" id="sug_input" name="title" value="<?php echo remove_junk($product['name']); ?>">
-                  <div id="result" class="list-group"></div>
+                  <input type="text" class="form-control" id="sug_input" name="title" value="<?php echo remove_junk($product['name']); ?>" readonly>
+                  <small class="help-block">
+                    <?php echo !empty($product['client_name']) ? 'Client: '.remove_junk($product['client_name']).' | ' : ''; ?>Current stock: <?php echo (int)$product['quantity']; ?>
+                  </small>
                 </td>
                 <td id="s_qty">
                   <input type="text" class="form-control" name="quantity" value="<?php echo (int)$sale['qty']; ?>">

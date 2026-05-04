@@ -66,6 +66,10 @@
         <!-- User menu -->
       <?php include_once('user_menu.php');?>
 
+      <?php elseif($user['user_level'] === '4'): ?>
+        <!-- Client menu -->
+      <?php include_once('client_menu.php');?>
+
       <?php endif;?>
 
    </div>

@@ -6,6 +6,7 @@
 ?>
 <?php
 $sales = find_all_sale();
+$msg = $session->msg();
 ?>
 <?php include_once('layouts/header.php'); ?>
 <div class="row">
@@ -31,6 +32,7 @@ $sales = find_all_sale();
               <tr>
                 <th class="text-center" style="width: 50px;">#</th>
                 <th> Product name </th>
+                <th> Client </th>
                 <th class="text-center" style="width: 15%;"> Quantity</th>
                 <th class="text-center" style="width: 15%;"> Total </th>
                 <th class="text-center" style="width: 15%;"> Date </th>
@@ -42,6 +44,7 @@ $sales = find_all_sale();
              <tr>
                <td class="text-center"><?php echo count_id();?></td>
                <td><?php echo remove_junk($sale['name']); ?></td>
+               <td><?php echo !empty($sale['client_name']) ? remove_junk($sale['client_name']) : 'Internal'; ?></td>
                <td class="text-center"><?php echo (int)$sale['qty']; ?></td>
                <td class="text-center"><?php echo remove_junk($sale['price']); ?></td>
                <td class="text-center"><?php echo $sale['date']; ?></td>
