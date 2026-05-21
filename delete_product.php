@@ -6,17 +6,38 @@
 <?php
   $product = find_by_id('products',(int)$_GET['id']);
   if(!$product){
-    $session->msg("d","Missing Product id.");
+    $session->msg("d","Barang titipan tidak ditemukan.");
     redirect('product.php');
   }
 ?>
 <?php
-  $delete_id = delete_by_id('products',(int)$product['id']);
+  $p_id = (int)$product['id'];
+  
+  // Hapus semua data terkait untuk menghindari yatim (orphan records)
+  // Stock movements
+  $db->query("DELETE FROM stock_movements WHERE product_id='{$p_id}'");
+  
+  // Ambil ID sales (pengambilan) terkait
+  $sales_result = $db->query("SELECT id FROM withdrawals WHERE product_id='{$p_id}'");
+  while($sale = $db->fetch_assoc($sales_result)){
+    $s_id = (int)$sale['id'];
+    // Hapus billings terkait sales (catatan: add_sale bikin desc dengan id produk, tapi kita bisa hapus yg nyebut id barang jg kl mau, tp yg plg aman dari desc 'Penagihan pengambilan barang' dll. Di sini billings/delivery_order tidak dihubungkan lgsg by sales_id, jadi kita bisa hapus berdasar reference)
+    $db->query("DELETE FROM stock_movements WHERE reference_type IN ('pengambilan', 'hapus_pengambilan', 'penyesuaian_pengambilan') AND reference_id='{$s_id}'");
+  }
+  
+  // Hapus sales
+  $db->query("DELETE FROM withdrawals WHERE product_id='{$p_id}'");
+  
+  // Hapus delivery orders yg berhubungan dg product ini
+  $db->query("DELETE FROM delivery_orders WHERE product_id='{$p_id}'");
+
+  // Delete product itself
+  $delete_id = delete_by_id('products', $p_id);
   if($delete_id){
-      $session->msg("s","Products deleted.");
+      $session->msg("s","Barang titipan berhasil dihapus.");
       redirect('product.php');
   } else {
-      $session->msg("d","Products deletion failed.");
+      $session->msg("d","Barang titipan gagal dihapus.");
       redirect('product.php');
   }
 ?>

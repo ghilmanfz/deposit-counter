@@ -4,7 +4,7 @@
 ?>
 
 <?php
- // Auto suggetion
+ // Saran otomatis barang titipan
     $html = '';
    if(isset($_POST['product_name']) && strlen($_POST['product_name']))
    {
@@ -14,14 +14,14 @@
         $html .= "<li class=\"list-group-item\"";
         $html .= " data-product-id=\"".(int)$product['id']."\" data-product-title=\"".remove_junk($product['name'])."\">";
         $html .= remove_junk($product['name']);
-        $html .= !empty($product['client_name']) ? ' - '.remove_junk($product['client_name']) : ' - Internal';
-        $html .= ' (Stock: '.(int)$product['quantity'].')';
+        $html .= !empty($product['client_name']) ? ' - Pelanggan: '.remove_junk($product['client_name']) : ' - Internal';
+        $html .= ' (Stok: '.(int)$product['quantity'].')';
         $html .= "</li>";
       endforeach;
       } else {
 
         $html .= '<li class="list-group-item">';
-        $html .= 'Not found';
+        $html .= 'Barang tidak ditemukan';
         $html .= "</li>";
 
       }
@@ -30,7 +30,7 @@
    }
  ?>
  <?php
- // find all product
+ // Ambil detail barang titipan
   if((isset($_POST['p_id']) && (int)$_POST['p_id'] > 0) || (isset($_POST['p_name']) && strlen($_POST['p_name'])))
   {
     $results = array();
@@ -50,29 +50,37 @@
           $html .= "<tr>";
 
           $html .= "<td id=\"s_name\">".remove_junk($result['name']);
-          $html .= !empty($result['client_name']) ? "<br><small class=\"text-muted\">Client: ".remove_junk($result['client_name'])."</small>" : "<br><small class=\"text-muted\">Internal stock</small>";
-          $html .= "<br><small class=\"text-muted\">Available stock: ".(int)$result['quantity']."</small></td>";
+          $html .= !empty($result['client_name']) ? "<br><small class=\"text-muted\">Pelanggan: ".remove_junk($result['client_name'])."</small>" : "<br><small class=\"text-muted\">Stok internal</small>";
+          $html .= "<br><small class=\"text-muted\">Stok tersedia: ".(int)$result['quantity']."</small>";
           $html .= "<input type=\"hidden\" name=\"s_id\" value=\"{$result['id']}\">";
-          $html  .= "<td>";
-          $html  .= "<input type=\"text\" class=\"form-control\" name=\"price\" value=\"{$result['sale_price']}\">";
-          $html  .= "</td>";
+          $html .= "<input type=\"hidden\" name=\"price\" value=\"0.00\">";
+          $html .= "<input type=\"hidden\" name=\"total\" value=\"0.00\"></td>";
           $html .= "<td id=\"s_qty\">";
           $html .= "<input type=\"number\" min=\"1\" max=\"".(int)$result['quantity']."\" class=\"form-control\" name=\"quantity\" value=\"1\">";
           $html  .= "</td>";
           $html  .= "<td>";
-          $html  .= "<input type=\"text\" class=\"form-control\" name=\"total\" value=\"{$result['sale_price']}\">";
+          $html  .= "<input type=\"date\" class=\"form-control datePicker\" name=\"date\" data-date data-date-format=\"yyyy-mm-dd\" value=\"".date('Y-m-d')."\">";
           $html  .= "</td>";
           $html  .= "<td>";
-          $html  .= "<input type=\"date\" class=\"form-control datePicker\" name=\"date\" data-date data-date-format=\"yyyy-mm-dd\">";
+          $html  .= "<input type=\"number\" min=\"0\" step=\"1000\" class=\"form-control\" name=\"billing_amount\" value=\"0\">";
           $html  .= "</td>";
           $html  .= "<td>";
-          $html  .= "<button type=\"submit\" name=\"add_sale\" class=\"btn btn-primary\">Add sale</button>";
+          $html  .= "<input type=\"date\" class=\"form-control\" name=\"due_date\" value=\"".date('Y-m-d', strtotime('+7 days'))."\">";
+          $html  .= "</td>";
+          $html  .= "<td>";
+          $html  .= "<input type=\"text\" class=\"form-control\" name=\"driver_name\" placeholder=\"Nama Supir\" value=\"-\">";
+          $html  .= "</td>";
+          $html  .= "<td>";
+          $html  .= "<input type=\"text\" class=\"form-control\" name=\"vehicle_no\" placeholder=\"Pelat Kendaraan\" value=\"-\">";
+          $html  .= "</td>";
+          $html  .= "<td>";
+          $html  .= "<button type=\"submit\" name=\"add_sale\" class=\"btn btn-primary\">Simpan Pengambilan</button>";
           $html  .= "</td>";
           $html  .= "</tr>";
 
         }
     } else {
-        $html ='<tr><td>product name not resgister in database</td></tr>';
+        $html ='<tr><td>Barang titipan tidak terdaftar di database</td></tr>';
     }
 
     echo json_encode($html);

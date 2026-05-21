@@ -1,5 +1,5 @@
 <?php
-  $page_title = 'Stock History';
+  $page_title = 'Riwayat Stok';
   require_once('includes/load.php');
   page_require_level(4);
 
@@ -22,7 +22,7 @@
       <div class="panel-heading">
         <strong>
           <span class="glyphicon glyphicon-transfer"></span>
-          <span><?php echo $client_view ? 'My Stock History' : 'Warehouse Stock History'; ?></span>
+          <span><?php echo $client_view ? 'Riwayat Stok Saya' : 'Riwayat Stok Gudang'; ?></span>
         </strong>
       </div>
       <div class="panel-body">
@@ -30,17 +30,17 @@
           <thead>
             <tr>
               <th class="text-center" style="width: 50px;">#</th>
-              <th class="text-center">Time</th>
-              <th>Product</th>
+              <th class="text-center">Waktu</th>
+              <th>Barang</th>
               <?php if(!$client_view): ?>
               <th>Client</th>
               <?php endif; ?>
-              <th class="text-center">Type</th>
-              <th class="text-center">Qty</th>
-              <th class="text-center">Before</th>
-              <th class="text-center">After</th>
-              <th>Note</th>
-              <th class="text-center">Recorded By</th>
+              <th class="text-center">Jenis</th>
+              <th class="text-center">Jumlah</th>
+              <th class="text-center">Sebelum</th>
+              <th class="text-center">Sesudah</th>
+              <th>Catatan</th>
+              <th class="text-center">Dicatat Oleh</th>
             </tr>
           </thead>
           <tbody>
@@ -52,7 +52,7 @@
               <?php if(!$client_view): ?>
               <td><?php echo !empty($movement['client_name']) ? remove_junk($movement['client_name']) : 'Internal'; ?></td>
               <?php endif; ?>
-              <td class="text-center"><?php echo remove_junk(ucfirst($movement['movement_type'])); ?></td>
+              <td class="text-center"><?php echo $movement['movement_type'] === 'in' ? 'Masuk' : ($movement['movement_type'] === 'out' ? 'Keluar' : 'Penyesuaian'); ?></td>
               <td class="text-center"><?php echo (int)$movement['quantity']; ?></td>
               <td class="text-center"><?php echo (int)$movement['quantity_before']; ?></td>
               <td class="text-center"><?php echo (int)$movement['quantity_after']; ?></td>

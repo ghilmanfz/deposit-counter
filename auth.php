@@ -12,11 +12,11 @@ if(empty($errors)){
      $session->login($user['id']);
     //Update Sign in time
      updateLastLogIn($user['id']);
-     $session->msg("s", "Welcome to Inventory Management System");
+     $session->msg("s", "Selamat datang di Sistem Penitipan Barang");
      redirect_by_user_level($user);
 
   } else {
-    $session->msg("d", "Sorry Username/Password incorrect.");
+    $session->msg("d", "Username atau password salah.");
     redirect('index.php',false);
   }
 

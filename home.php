@@ -1,5 +1,5 @@
 <?php
-  $page_title = 'Home Page';
+  $page_title = 'Dashboard';
   require_once('includes/load.php');
   $msg = $session->msg();
   if (!$session->isUserLoggedIn(true)) { redirect('index.php', false);}
@@ -13,8 +13,8 @@
  <div class="col-md-12">
     <div class="panel">
       <div class="jumbotron text-center">
-         <h1>Welcome User <hr> Inventory Management System</h1>
-         <p>Browes around to find out the pages that you can access!</p>
+         <h1>Selamat Datang <hr> Sistem Penitipan Barang</h1>
+         <p>Silakan pilih menu yang tersedia sesuai hak akses akun.</p>
       </div>
     </div>
  </div>

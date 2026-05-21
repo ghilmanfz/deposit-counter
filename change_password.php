@@ -1,5 +1,5 @@
 <?php
-  $page_title = 'Change Password';
+  $page_title = 'Ubah Password';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
   page_require_level(4);
@@ -15,7 +15,7 @@
     if(empty($errors)){
 
              if(sha1($_POST['old-password']) !== current_user()['password'] ){
-               $session->msg('d', "Your old password not match");
+               $session->msg('d', "Password lama Anda tidak cocok");
                redirect('change_password.php',false);
              }
 
@@ -25,10 +25,10 @@
             $result = $db->query($sql);
                 if($result && $db->affected_rows() === 1):
                   $session->logout();
-                  $session->msg('s',"Login with your new password.");
+                  $session->msg('s',"Silakan login dengan password baru Anda.");
                   redirect('index.php', false);
                 else:
-                  $session->msg('d',' Sorry failed to updated!');
+                  $session->msg('d',' Maaf gagal mengupdate password!');
                   redirect('change_password.php', false);
                 endif;
     } else {
@@ -40,21 +40,21 @@
 <?php include_once('layouts/header.php'); ?>
 <div class="login-page">
     <div class="text-center">
-       <h3>Change your password</h3>
+       <h3>Ubah Password Anda</h3>
      </div>
      <?php echo display_msg($msg); ?>
       <form method="post" action="change_password.php" class="clearfix">
         <div class="form-group">
-              <label for="newPassword" class="control-label">New password</label>
-              <input type="password" class="form-control" name="new-password" placeholder="New password">
+              <label for="newPassword" class="control-label">Password baru</label>
+              <input type="password" class="form-control" name="new-password" placeholder="Password baru">
         </div>
         <div class="form-group">
-              <label for="oldPassword" class="control-label">Old password</label>
-              <input type="password" class="form-control" name="old-password" placeholder="Old password">
+              <label for="oldPassword" class="control-label">Password lama</label>
+              <input type="password" class="form-control" name="old-password" placeholder="Password lama">
         </div>
         <div class="form-group clearfix">
                <input type="hidden" name="id" value="<?php echo (int)$user['id'];?>">
-                <button type="submit" name="update" class="btn btn-info">Change</button>
+                <button type="submit" name="update" class="btn btn-info">Ubah</button>
         </div>
     </form>
 </div>

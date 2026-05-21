@@ -1,5 +1,5 @@
 <?php
-  $page_title = 'All Group';
+  $page_title = 'Grup User';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
    page_require_level(1);
@@ -17,19 +17,19 @@
     <div class="panel-heading clearfix">
       <strong>
         <span class="glyphicon glyphicon-th"></span>
-        <span>Groups</span>
+        <span>Grup User</span>
      </strong>
-       <a href="add_group.php" class="btn btn-info pull-right btn-sm"> Add New Group</a>
+       <a href="add_group.php" class="btn btn-info pull-right btn-sm"> Tambah Grup</a>
     </div>
      <div class="panel-body">
       <table class="table table-bordered">
         <thead>
           <tr>
             <th class="text-center" style="width: 50px;">#</th>
-            <th>Group Name</th>
-            <th class="text-center" style="width: 20%;">Group Level</th>
+            <th>Nama Grup</th>
+            <th class="text-center" style="width: 20%;">Level Grup</th>
             <th class="text-center" style="width: 15%;">Status</th>
-            <th class="text-center" style="width: 100px;">Actions</th>
+            <th class="text-center" style="width: 100px;">Aksi</th>
           </tr>
         </thead>
         <tbody>
@@ -42,9 +42,9 @@
            </td>
            <td class="text-center">
            <?php if($a_group['group_status'] === '1'): ?>
-            <span class="label label-success"><?php echo "Active"; ?></span>
+            <span class="label label-success"><?php echo "Aktif"; ?></span>
           <?php else: ?>
-            <span class="label label-danger"><?php echo "Deactive"; ?></span>
+            <span class="label label-danger"><?php echo "Nonaktif"; ?></span>
           <?php endif;?>
            </td>
            <td class="text-center">
@@ -52,7 +52,7 @@
                 <a href="edit_group.php?id=<?php echo (int)$a_group['id'];?>" class="btn btn-xs btn-warning" data-toggle="tooltip" title="Edit">
                   <i class="glyphicon glyphicon-pencil"></i>
                </a>
-                <a href="delete_group.php?id=<?php echo (int)$a_group['id'];?>" class="btn btn-xs btn-danger" data-toggle="tooltip" title="Remove">
+                <a href="delete_group.php?id=<?php echo (int)$a_group['id'];?>" class="btn btn-xs btn-danger" data-toggle="tooltip" title="Hapus">
                   <i class="glyphicon glyphicon-remove"></i>
                 </a>
                 </div>

@@ -1,5 +1,5 @@
 <?php
-  $page_title = 'All User';
+  $page_title = 'Daftar User';
   require_once('includes/load.php');
 ?>
 <?php
@@ -20,21 +20,21 @@
       <div class="panel-heading clearfix">
         <strong>
           <span class="glyphicon glyphicon-th"></span>
-          <span>Users</span>
+          <span>User</span>
        </strong>
-         <a href="add_user.php" class="btn btn-info pull-right">Add New User</a>
+         <a href="add_user.php" class="btn btn-info pull-right">Tambah User</a>
       </div>
      <div class="panel-body">
       <table class="table table-bordered table-striped">
         <thead>
           <tr>
             <th class="text-center" style="width: 50px;">#</th>
-            <th>Name </th>
+            <th>Nama </th>
             <th>Username</th>
-            <th class="text-center" style="width: 15%;">User Role</th>
+            <th class="text-center" style="width: 15%;">Role User</th>
             <th class="text-center" style="width: 10%;">Status</th>
-            <th style="width: 20%;">Last Login</th>
-            <th class="text-center" style="width: 100px;">Actions</th>
+            <th style="width: 20%;">Login Terakhir</th>
+            <th class="text-center" style="width: 100px;">Aksi</th>
           </tr>
         </thead>
         <tbody>
@@ -46,9 +46,9 @@
            <td class="text-center"><?php echo remove_junk(ucwords($a_user['group_name']))?></td>
            <td class="text-center">
            <?php if($a_user['status'] === '1'): ?>
-            <span class="label label-success"><?php echo "Active"; ?></span>
+            <span class="label label-success"><?php echo "Aktif"; ?></span>
           <?php else: ?>
-            <span class="label label-danger"><?php echo "Deactive"; ?></span>
+            <span class="label label-danger"><?php echo "Nonaktif"; ?></span>
           <?php endif;?>
            </td>
            <td><?php echo read_date($a_user['last_login'])?></td>
@@ -57,7 +57,7 @@
                 <a href="edit_user.php?id=<?php echo (int)$a_user['id'];?>" class="btn btn-xs btn-warning" data-toggle="tooltip" title="Edit">
                   <i class="glyphicon glyphicon-pencil"></i>
                </a>
-                <a href="delete_user.php?id=<?php echo (int)$a_user['id'];?>" class="btn btn-xs btn-danger" data-toggle="tooltip" title="Remove">
+                <a href="delete_user.php?id=<?php echo (int)$a_user['id'];?>" class="btn btn-xs btn-danger" data-toggle="tooltip" title="Hapus">
                   <i class="glyphicon glyphicon-remove"></i>
                 </a>
                 </div>

@@ -1,5 +1,5 @@
 <?php
-  $page_title = 'Client Dashboard';
+  $page_title = 'Dashboard Client';
   require_once('includes/load.php');
   page_require_level(4);
 
@@ -30,7 +30,7 @@
       </div>
       <div class="panel-value pull-right">
         <h2 class="margin-top"><?php echo (int)$inventory_summary['total_products']; ?></h2>
-        <p class="text-muted">Goods Registered</p>
+        <p class="text-muted">Barang Terdaftar</p>
       </div>
     </div>
   </div>
@@ -41,7 +41,7 @@
       </div>
       <div class="panel-value pull-right">
         <h2 class="margin-top"><?php echo (int)$inventory_summary['total_stock']; ?></h2>
-        <p class="text-muted">Current Stock</p>
+        <p class="text-muted">Stok Saat Ini</p>
       </div>
     </div>
   </div>
@@ -52,7 +52,7 @@
       </div>
       <div class="panel-value pull-right">
         <h2 class="margin-top"><?php echo (int)$movement_summary['total_out']; ?></h2>
-        <p class="text-muted">Total Stock Out</p>
+        <p class="text-muted">Total Barang Diambil</p>
       </div>
     </div>
   </div>
@@ -64,7 +64,7 @@
       <div class="panel-heading">
         <strong>
           <span class="glyphicon glyphicon-th"></span>
-          <span>Recent Goods</span>
+          <span>Barang Terbaru</span>
         </strong>
       </div>
       <div class="panel-body">
@@ -72,9 +72,9 @@
           <thead>
             <tr>
               <th class="text-center" style="width: 50px;">#</th>
-              <th>Product</th>
-              <th class="text-center">Stock</th>
-              <th class="text-center">Added</th>
+              <th>Barang</th>
+              <th class="text-center">Stok</th>
+              <th class="text-center">Tanggal Masuk</th>
             </tr>
           </thead>
           <tbody>
@@ -96,7 +96,7 @@
       <div class="panel-heading">
         <strong>
           <span class="glyphicon glyphicon-transfer"></span>
-          <span>Recent Stock Movements</span>
+          <span>Riwayat Stok Terbaru</span>
         </strong>
       </div>
       <div class="panel-body">
@@ -104,10 +104,10 @@
           <thead>
             <tr>
               <th class="text-center" style="width: 50px;">#</th>
-              <th>Product</th>
-              <th class="text-center">Type</th>
-              <th class="text-center">Qty</th>
-              <th class="text-center">Time</th>
+              <th>Barang</th>
+              <th class="text-center">Jenis</th>
+              <th class="text-center">Jumlah</th>
+              <th class="text-center">Waktu</th>
             </tr>
           </thead>
           <tbody>
@@ -115,7 +115,7 @@
             <tr>
               <td class="text-center"><?php echo count_id(); ?></td>
               <td><?php echo remove_junk($movement['product_name']); ?></td>
-              <td class="text-center"><?php echo remove_junk(ucfirst($movement['movement_type'])); ?></td>
+              <td class="text-center"><?php echo $movement['movement_type'] === 'in' ? 'Masuk' : ($movement['movement_type'] === 'out' ? 'Keluar' : 'Penyesuaian'); ?></td>
               <td class="text-center"><?php echo (int)$movement['quantity']; ?></td>
               <td class="text-center"><?php echo read_date($movement['created_at']); ?></td>
             </tr>

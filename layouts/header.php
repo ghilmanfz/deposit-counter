@@ -1,13 +1,13 @@
 <?php $user = current_user(); ?>
 <!DOCTYPE html>
-  <html lang="en">
+  <html lang="id">
     <head>
     <meta charset="UTF-8">
     <title><?php if (!empty($page_title))
            echo remove_junk($page_title);
             elseif(!empty($user))
            echo ucfirst($user['name']);
-            else echo "Inventory Management System";?>
+            else echo "Sistem Penitipan Barang";?>
     </title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"/>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css" />
@@ -16,10 +16,10 @@
   <body>
   <?php  if ($session->isUserLoggedIn(true)): ?>
     <header id="header">
-      <div class="logo pull-left"> Inventory System</div>
+      <div class="logo pull-left"> Sistem Penitipan Barang</div>
       <div class="header-content">
       <div class="header-date pull-left">
-        <strong><?php echo date("F j, Y, g:i a");?></strong>
+        <strong><?php echo date("d/m/Y H:i");?></strong>
       </div>
       <div class="pull-right clearfix">
         <ul class="info-menu list-inline list-unstyled">
@@ -32,19 +32,19 @@
               <li>
                   <a href="profile.php?id=<?php echo (int)$user['id'];?>">
                       <i class="glyphicon glyphicon-user"></i>
-                      Profile
+                      Profil
                   </a>
               </li>
              <li>
                  <a href="edit_account.php" title="edit account">
                      <i class="glyphicon glyphicon-cog"></i>
-                     Settings
+                     Pengaturan
                  </a>
              </li>
              <li class="last">
                  <a href="logout.php">
                      <i class="glyphicon glyphicon-off"></i>
-                     Logout
+                     Keluar
                  </a>
              </li>
            </ul>

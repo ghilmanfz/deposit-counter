@@ -1,5 +1,5 @@
 <?php
-  $page_title = 'Edit Account';
+  $page_title = 'Edit Akun';
   require_once('includes/load.php');
   page_require_level(4);
   $msg = $session->msg();
@@ -11,7 +11,7 @@
   $user_id = (int)$_POST['user_id'];
   $photo->upload($_FILES['file_upload']);
   if($photo->process_user($user_id)){
-    $session->msg('s','photo has been uploaded.');
+    $session->msg('s','Foto berhasil diupload.');
     redirect('edit_account.php');
     } else{
       $session->msg('d',join($photo->errors));
@@ -31,10 +31,10 @@
             $sql = "UPDATE users SET name ='{$name}', username ='{$username}' WHERE id='{$id}'";
     $result = $db->query($sql);
           if($result && $db->affected_rows() === 1){
-            $session->msg('s',"Acount updated ");
+            $session->msg('s',"Akun berhasil diupdate ");
             redirect('edit_account.php', false);
           } else {
-            $session->msg('d',' Sorry failed to updated!');
+            $session->msg('d',' Maaf gagal mengupdate!');
             redirect('edit_account.php', false);
           }
     } else {
@@ -53,7 +53,7 @@
         <div class="panel-heading">
           <div class="panel-heading clearfix">
             <span class="glyphicon glyphicon-camera"></span>
-            <span>Change My photo</span>
+            <span>Ubah Foto Saya</span>
           </div>
         </div>
         <div class="panel-body">
@@ -68,7 +68,7 @@
               </div>
               <div class="form-group">
                 <input type="hidden" name="user_id" value="<?php echo $user['id'];?>">
-                 <button type="submit" name="submit" class="btn btn-warning">Change</button>
+                 <button type="submit" name="submit" class="btn btn-warning">Ubah</button>
               </div>
              </form>
             </div>
@@ -80,12 +80,12 @@
     <div class="panel panel-default">
       <div class="panel-heading clearfix">
         <span class="glyphicon glyphicon-edit"></span>
-        <span>Edit My Account</span>
+        <span>Edit Akun Saya</span>
       </div>
       <div class="panel-body">
           <form method="post" action="edit_account.php?id=<?php echo (int)$user['id'];?>" class="clearfix">
             <div class="form-group">
-                  <label for="name" class="control-label">Name</label>
+                  <label for="name" class="control-label">Nama Lengkap</label>
                   <input type="name" class="form-control" name="name" value="<?php echo remove_junk(ucwords($user['name'])); ?>">
             </div>
             <div class="form-group">
@@ -93,7 +93,7 @@
                   <input type="text" class="form-control" name="username" value="<?php echo remove_junk(ucwords($user['username'])); ?>">
             </div>
             <div class="form-group clearfix">
-                    <a href="change_password.php" title="change password" class="btn btn-danger pull-right">Change Password</a>
+                    <a href="change_password.php" title="Ubah password" class="btn btn-danger pull-right">Ubah Password</a>
                     <button type="submit" name="update" class="btn btn-info">Update</button>
             </div>
         </form>

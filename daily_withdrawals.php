@@ -1,12 +1,14 @@
 <?php
-  $page_title = 'Monthly Sales';
+  $page_title = 'Laporan Harian Pengambilan';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
    page_require_level(3);
 ?>
+
 <?php
- $year = date('Y');
- $sales = monthlySales($year);
+ $year  = date('Y');
+ $month = date('m');
+ $sales = dailySales($year,$month);
 ?>
 <?php include_once('layouts/header.php'); ?>
 <div class="row">
@@ -20,7 +22,7 @@
         <div class="panel-heading clearfix">
           <strong>
             <span class="glyphicon glyphicon-th"></span>
-            <span>Monthly Sales</span>
+            <span>Laporan Harian Pengambilan</span>
           </strong>
         </div>
         <div class="panel-body">
@@ -28,10 +30,9 @@
             <thead>
               <tr>
                 <th class="text-center" style="width: 50px;">#</th>
-                <th> Product name </th>
-                <th class="text-center" style="width: 15%;"> Quantity sold</th>
-                <th class="text-center" style="width: 15%;"> Total </th>
-                <th class="text-center" style="width: 15%;"> Date </th>
+                <th> Barang Titipan </th>
+                <th class="text-center" style="width: 15%;"> Jumlah Diambil</th>
+                <th class="text-center" style="width: 15%;"> Tanggal </th>
              </tr>
             </thead>
            <tbody>
@@ -40,7 +41,6 @@
                <td class="text-center"><?php echo count_id();?></td>
                <td><?php echo remove_junk($sale['name']); ?></td>
                <td class="text-center"><?php echo (int)$sale['qty']; ?></td>
-               <td class="text-center"><?php echo remove_junk($sale['total_saleing_price']); ?></td>
                <td class="text-center"><?php echo $sale['date']; ?></td>
              </tr>
              <?php endforeach;?>

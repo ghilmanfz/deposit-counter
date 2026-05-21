@@ -34,7 +34,7 @@ function validate_fields($var){
   foreach ($var as $field) {
     $val = remove_junk($_POST[$field]);
     if(isset($val) && $val==''){
-      $errors = $field ." can't be blank.";
+      $errors = $field ." tidak boleh kosong.";
       return $errors;
     }
   }
@@ -87,15 +87,43 @@ function total_price($totals){
 /*--------------------------------------------------------------*/
 function read_date($str){
      if($str)
-      return date('F j, Y, g:i:s a', strtotime($str));
+      return date('d/m/Y H:i:s', strtotime($str));
      else
       return null;
   }
 /*--------------------------------------------------------------*/
+/* Format angka rupiah
+/*--------------------------------------------------------------*/
+function format_rupiah($value){
+  return 'Rp ' . number_format((float)$value, 0, ',', '.');
+}
+/*--------------------------------------------------------------*/
+/* Label status tagihan
+/*--------------------------------------------------------------*/
+function billing_status_label($status){
+  $status = strtolower((string)$status);
+
+  if($status === 'lunas'){
+    return 'Lunas';
+  }
+
+  if($status === 'jatuh_tempo'){
+    return 'Jatuh Tempo';
+  }
+
+  return 'Belum Lunas';
+}
+/*--------------------------------------------------------------*/
+/* Label jenis mutasi surat jalan
+/*--------------------------------------------------------------*/
+function delivery_movement_label($type){
+  return $type === 'in' ? 'Barang Masuk' : 'Barang Keluar';
+}
+/*--------------------------------------------------------------*/
 /* Function for  Readable Make date time
 /*--------------------------------------------------------------*/
 function make_date(){
-  return strftime("%Y-%m-%d %H:%M:%S", time());
+  return date("Y-m-d H:i:s");
 }
 /*--------------------------------------------------------------*/
 /* Function for  Readable date time
@@ -113,7 +141,7 @@ function randString($length = 5)
   $cha = "0123456789abcdefghijklmnopqrstuvwxyz";
 
   for($x=0; $x<$length; $x++)
-   $str .= $cha[mt_rand(0,strlen($cha))];
+   $str .= $cha[mt_rand(0,strlen($cha) - 1)];
   return $str;
 }
 

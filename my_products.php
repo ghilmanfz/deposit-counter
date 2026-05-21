@@ -1,5 +1,5 @@
 <?php
-  $page_title = 'My Goods';
+  $page_title = 'Barang Saya';
   require_once('includes/load.php');
   page_require_level(4);
 
@@ -24,7 +24,7 @@
       <div class="panel-heading">
         <strong>
           <span class="glyphicon glyphicon-th-large"></span>
-          <span>My Goods in Warehouse</span>
+          <span>Barang Saya di Gudang</span>
         </strong>
       </div>
       <div class="panel-body">
@@ -32,10 +32,10 @@
           <thead>
             <tr>
               <th class="text-center" style="width: 50px;">#</th>
-              <th>Product</th>
-              <th class="text-center">Category</th>
-              <th class="text-center">Current Stock</th>
-              <th class="text-center">Last Recorded</th>
+              <th>Barang</th>
+              <th class="text-center">Kategori</th>
+              <th class="text-center">Stok Saat Ini</th>
+              <th class="text-center">Terakhir Dicatat</th>
             </tr>
           </thead>
           <tbody>

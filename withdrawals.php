@@ -1,5 +1,5 @@
 <?php
-  $page_title = 'All sale';
+  $page_title = 'Pengambilan Barang';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
    page_require_level(3);
@@ -20,10 +20,10 @@ $msg = $session->msg();
         <div class="panel-heading clearfix">
           <strong>
             <span class="glyphicon glyphicon-th"></span>
-            <span>All Sales</span>
+            <span>Pengambilan Barang</span>
           </strong>
           <div class="pull-right">
-            <a href="add_sale.php" class="btn btn-primary">Add sale</a>
+            <a href="add_withdrawal.php" class="btn btn-primary">Tambah Pengambilan</a>
           </div>
         </div>
         <div class="panel-body">
@@ -31,12 +31,11 @@ $msg = $session->msg();
             <thead>
               <tr>
                 <th class="text-center" style="width: 50px;">#</th>
-                <th> Product name </th>
-                <th> Client </th>
-                <th class="text-center" style="width: 15%;"> Quantity</th>
-                <th class="text-center" style="width: 15%;"> Total </th>
-                <th class="text-center" style="width: 15%;"> Date </th>
-                <th class="text-center" style="width: 100px;"> Actions </th>
+                <th> Barang Titipan </th>
+                <th> Pelanggan </th>
+                <th class="text-center" style="width: 15%;"> Jumlah</th>
+                <th class="text-center" style="width: 15%;"> Tanggal </th>
+                <th class="text-center" style="width: 100px;"> Aksi </th>
              </tr>
             </thead>
            <tbody>
@@ -46,14 +45,13 @@ $msg = $session->msg();
                <td><?php echo remove_junk($sale['name']); ?></td>
                <td><?php echo !empty($sale['client_name']) ? remove_junk($sale['client_name']) : 'Internal'; ?></td>
                <td class="text-center"><?php echo (int)$sale['qty']; ?></td>
-               <td class="text-center"><?php echo remove_junk($sale['price']); ?></td>
                <td class="text-center"><?php echo $sale['date']; ?></td>
                <td class="text-center">
                   <div class="btn-group">
-                     <a href="edit_sale.php?id=<?php echo (int)$sale['id'];?>" class="btn btn-warning btn-xs"  title="Edit" data-toggle="tooltip">
+                     <a href="edit_withdrawal.php?id=<?php echo (int)$sale['id'];?>" class="btn btn-warning btn-xs"  title="Edit" data-toggle="tooltip">
                        <span class="glyphicon glyphicon-edit"></span>
                      </a>
-                     <a href="delete_sale.php?id=<?php echo (int)$sale['id'];?>" class="btn btn-danger btn-xs"  title="Delete" data-toggle="tooltip">
+                     <a href="delete_withdrawal.php?id=<?php echo (int)$sale['id'];?>" class="btn btn-danger btn-xs"  title="Hapus" data-toggle="tooltip">
                        <span class="glyphicon glyphicon-trash"></span>
                      </a>
                   </div>

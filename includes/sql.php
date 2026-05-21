@@ -539,6 +539,275 @@ function tableExists($table){
 
     return false;
   }
+
+  /*--------------------------------------------------------------*/
+  /* Penagihan dan surat jalan untuk sistem penitipan barang
+  /*--------------------------------------------------------------*/
+  function ensure_consignment_tables(){
+    global $db;
+
+    $billings_sql  = "CREATE TABLE IF NOT EXISTS billings (";
+    $billings_sql .= "id int(11) unsigned NOT NULL AUTO_INCREMENT,";
+    $billings_sql .= "invoice_no varchar(50) NOT NULL,";
+    $billings_sql .= "client_id int(11) unsigned DEFAULT NULL,";
+    $billings_sql .= "product_id int(11) unsigned DEFAULT NULL,";
+    $billings_sql .= "reference_type varchar(50) DEFAULT NULL,";
+    $billings_sql .= "reference_id int(11) unsigned DEFAULT NULL,";
+    $billings_sql .= "description varchar(255) NOT NULL,";
+    $billings_sql .= "amount decimal(25,2) NOT NULL DEFAULT '0.00',";
+    $billings_sql .= "issue_date date NOT NULL,";
+    $billings_sql .= "due_date date NOT NULL,";
+    $billings_sql .= "status varchar(20) NOT NULL DEFAULT 'belum_lunas',";
+    $billings_sql .= "paid_date date DEFAULT NULL,";
+    $billings_sql .= "note text DEFAULT NULL,";
+    $billings_sql .= "created_by int(11) unsigned DEFAULT NULL,";
+    $billings_sql .= "created_at datetime NOT NULL,";
+    $billings_sql .= "PRIMARY KEY (id),";
+    $billings_sql .= "UNIQUE KEY invoice_no (invoice_no),";
+    $billings_sql .= "KEY client_id (client_id),";
+    $billings_sql .= "KEY product_id (product_id),";
+    $billings_sql .= "KEY due_date (due_date),";
+    $billings_sql .= "KEY status (status)";
+    $billings_sql .= ") ENGINE=InnoDB DEFAULT CHARSET=latin1";
+
+    $delivery_sql  = "CREATE TABLE IF NOT EXISTS delivery_orders (";
+    $delivery_sql .= "id int(11) unsigned NOT NULL AUTO_INCREMENT,";
+    $delivery_sql .= "document_no varchar(50) NOT NULL,";
+    $delivery_sql .= "movement_type varchar(10) NOT NULL,";
+    $delivery_sql .= "client_id int(11) unsigned DEFAULT NULL,";
+    $delivery_sql .= "product_id int(11) unsigned DEFAULT NULL,";
+    $delivery_sql .= "quantity int(11) NOT NULL DEFAULT '0',";
+    $delivery_sql .= "document_date date NOT NULL,";
+    $delivery_sql .= "recipient varchar(100) DEFAULT NULL,";
+    $delivery_sql .= "driver_name varchar(100) DEFAULT NULL,";
+    $delivery_sql .= "vehicle_no varchar(50) DEFAULT NULL,";
+    $delivery_sql .= "reference_type varchar(50) DEFAULT NULL,";
+    $delivery_sql .= "reference_id int(11) unsigned DEFAULT NULL,";
+    $delivery_sql .= "note text DEFAULT NULL,";
+    $delivery_sql .= "created_by int(11) unsigned DEFAULT NULL,";
+    $delivery_sql .= "created_at datetime NOT NULL,";
+    $delivery_sql .= "PRIMARY KEY (id),";
+    $delivery_sql .= "UNIQUE KEY document_no (document_no),";
+    $delivery_sql .= "KEY client_id (client_id),";
+    $delivery_sql .= "KEY product_id (product_id),";
+    $delivery_sql .= "KEY document_date (document_date)";
+    $delivery_sql .= ") ENGINE=InnoDB DEFAULT CHARSET=latin1";
+
+    $db->query($billings_sql);
+    $db->query($delivery_sql);
+  }
+
+  function generate_consignment_number($prefix){
+    return $prefix . '-' . date('YmdHis') . '-' . strtoupper(randString(4));
+  }
+
+  function create_billing($data = array()){
+    global $db;
+    ensure_consignment_tables();
+
+    $invoice_no = !empty($data['invoice_no'])
+      ? $db->escape($data['invoice_no'])
+      : $db->escape(generate_consignment_number('INV'));
+    $client_id = isset($data['client_id']) ? (int)$data['client_id'] : 0;
+    $product_id = isset($data['product_id']) ? (int)$data['product_id'] : 0;
+    $reference_type = isset($data['reference_type']) ? $db->escape($data['reference_type']) : '';
+    $reference_id = isset($data['reference_id']) ? (int)$data['reference_id'] : 0;
+    $description = !empty($data['description']) ? $db->escape($data['description']) : 'Penagihan penitipan barang';
+    $amount = isset($data['amount']) ? (float)$data['amount'] : 0;
+    $issue_date = !empty($data['issue_date']) ? $db->escape($data['issue_date']) : date('Y-m-d');
+    $due_date = !empty($data['due_date']) ? $db->escape($data['due_date']) : $issue_date;
+    $status = !empty($data['status']) ? $db->escape($data['status']) : 'belum_lunas';
+    $paid_date = !empty($data['paid_date']) ? "'".$db->escape($data['paid_date'])."'" : "NULL";
+    $note = !empty($data['note']) ? "'".$db->escape($data['note'])."'" : "NULL";
+    $created_by = isset($data['created_by']) ? (int)$data['created_by'] : 0;
+    $created_at = !empty($data['created_at']) ? $db->escape($data['created_at']) : make_date();
+
+    if($created_by === 0){
+      $user = current_user();
+      $created_by = $user ? (int)$user['id'] : 0;
+    }
+
+    $client_value = $client_id > 0 ? "'{$client_id}'" : "NULL";
+    $product_value = $product_id > 0 ? "'{$product_id}'" : "NULL";
+    $reference_type_value = $reference_type !== '' ? "'{$reference_type}'" : "NULL";
+    $reference_id_value = $reference_id > 0 ? "'{$reference_id}'" : "NULL";
+    $created_by_value = $created_by > 0 ? "'{$created_by}'" : "NULL";
+
+    $sql  = "INSERT INTO billings (";
+    $sql .= "invoice_no,client_id,product_id,reference_type,reference_id,description,amount,";
+    $sql .= "issue_date,due_date,status,paid_date,note,created_by,created_at";
+    $sql .= ") VALUES (";
+    $sql .= "'{$invoice_no}',{$client_value},{$product_value},{$reference_type_value},{$reference_id_value},";
+    $sql .= "'{$description}','".$db->escape(number_format($amount, 2, '.', ''))."','{$issue_date}','{$due_date}',";
+    $sql .= "'{$status}',{$paid_date},{$note},{$created_by_value},'{$created_at}'";
+    $sql .= ")";
+
+    if($db->query($sql)){
+      return $db->insert_id();
+    }
+
+    return false;
+  }
+
+  function create_delivery_order($data = array()){
+    global $db;
+    ensure_consignment_tables();
+
+    $document_no = !empty($data['document_no'])
+      ? $db->escape($data['document_no'])
+      : $db->escape(generate_consignment_number('SJ'));
+    $movement_type = !empty($data['movement_type']) ? $db->escape($data['movement_type']) : 'out';
+    $client_id = isset($data['client_id']) ? (int)$data['client_id'] : 0;
+    $product_id = isset($data['product_id']) ? (int)$data['product_id'] : 0;
+    $quantity = isset($data['quantity']) ? (int)$data['quantity'] : 0;
+    $document_date = !empty($data['document_date']) ? $db->escape($data['document_date']) : date('Y-m-d');
+    $recipient = !empty($data['recipient']) ? "'".$db->escape($data['recipient'])."'" : "NULL";
+    $driver_name = !empty($data['driver_name']) ? "'".$db->escape($data['driver_name'])."'" : "NULL";
+    $vehicle_no = !empty($data['vehicle_no']) ? "'".$db->escape($data['vehicle_no'])."'" : "NULL";
+    $reference_type = isset($data['reference_type']) ? $db->escape($data['reference_type']) : '';
+    $reference_id = isset($data['reference_id']) ? (int)$data['reference_id'] : 0;
+    $note = !empty($data['note']) ? "'".$db->escape($data['note'])."'" : "NULL";
+    $created_by = isset($data['created_by']) ? (int)$data['created_by'] : 0;
+    $created_at = !empty($data['created_at']) ? $db->escape($data['created_at']) : make_date();
+
+    if($created_by === 0){
+      $user = current_user();
+      $created_by = $user ? (int)$user['id'] : 0;
+    }
+
+    $client_value = $client_id > 0 ? "'{$client_id}'" : "NULL";
+    $product_value = $product_id > 0 ? "'{$product_id}'" : "NULL";
+    $reference_type_value = $reference_type !== '' ? "'{$reference_type}'" : "NULL";
+    $reference_id_value = $reference_id > 0 ? "'{$reference_id}'" : "NULL";
+    $created_by_value = $created_by > 0 ? "'{$created_by}'" : "NULL";
+
+    $sql  = "INSERT INTO delivery_orders (";
+    $sql .= "document_no,movement_type,client_id,product_id,quantity,document_date,recipient,";
+    $sql .= "driver_name,vehicle_no,reference_type,reference_id,note,created_by,created_at";
+    $sql .= ") VALUES (";
+    $sql .= "'{$document_no}','{$movement_type}',{$client_value},{$product_value},'".$db->escape($quantity)."',";
+    $sql .= "'{$document_date}',{$recipient},{$driver_name},{$vehicle_no},{$reference_type_value},";
+    $sql .= "{$reference_id_value},{$note},{$created_by_value},'{$created_at}'";
+    $sql .= ")";
+
+    if($db->query($sql)){
+      return $db->insert_id();
+    }
+
+    return false;
+  }
+
+  function find_all_billings($client_id = null){
+    global $db;
+    ensure_consignment_tables();
+    $viewer_client_id = current_client_id();
+
+    if($viewer_client_id !== null){
+      $client_id = $viewer_client_id;
+    }
+
+    $sql  = "SELECT b.*,u.name AS client_name,p.name AS product_name,actor.name AS created_by_name ";
+    $sql .= "FROM billings b ";
+    $sql .= "LEFT JOIN users u ON u.id = b.client_id ";
+    $sql .= "LEFT JOIN products p ON p.id = b.product_id ";
+    $sql .= "LEFT JOIN users actor ON actor.id = b.created_by";
+
+    if($client_id !== null){
+      $sql .= " WHERE b.client_id='".$db->escape((int)$client_id)."'";
+    }
+
+    $sql .= " ORDER BY b.due_date ASC, b.id DESC";
+    return find_by_sql($sql);
+  }
+
+  function find_billing_details($billing_id, $client_id = null){
+    global $db;
+    ensure_consignment_tables();
+    $billing_id = (int)$billing_id;
+    $viewer_client_id = current_client_id();
+
+    if($viewer_client_id !== null){
+      $client_id = $viewer_client_id;
+    }
+
+    $sql  = "SELECT b.*,u.name AS client_name,u.username AS client_username,p.name AS product_name,";
+    $sql .= "actor.name AS created_by_name ";
+    $sql .= "FROM billings b ";
+    $sql .= "LEFT JOIN users u ON u.id = b.client_id ";
+    $sql .= "LEFT JOIN products p ON p.id = b.product_id ";
+    $sql .= "LEFT JOIN users actor ON actor.id = b.created_by ";
+    $sql .= "WHERE b.id='".$db->escape($billing_id)."'";
+
+    if($client_id !== null){
+      $sql .= " AND b.client_id='".$db->escape((int)$client_id)."'";
+    }
+
+    $sql .= " LIMIT 1";
+    $result = find_by_sql($sql);
+    return empty($result) ? null : $result[0];
+  }
+
+  function update_billing_status($billing_id, $status, $paid_date = null){
+    global $db;
+    ensure_consignment_tables();
+    $billing_id = (int)$billing_id;
+    $status = $db->escape($status);
+    $paid_value = $paid_date ? "'".$db->escape($paid_date)."'" : "NULL";
+
+    $sql  = "UPDATE billings SET status='{$status}', paid_date={$paid_value} ";
+    $sql .= "WHERE id='".$db->escape($billing_id)."' LIMIT 1";
+    return $db->query($sql);
+  }
+
+  function find_all_delivery_orders($client_id = null){
+    global $db;
+    ensure_consignment_tables();
+    $viewer_client_id = current_client_id();
+
+    if($viewer_client_id !== null){
+      $client_id = $viewer_client_id;
+    }
+
+    $sql  = "SELECT d.*,u.name AS client_name,p.name AS product_name,actor.name AS created_by_name ";
+    $sql .= "FROM delivery_orders d ";
+    $sql .= "LEFT JOIN users u ON u.id = d.client_id ";
+    $sql .= "LEFT JOIN products p ON p.id = d.product_id ";
+    $sql .= "LEFT JOIN users actor ON actor.id = d.created_by";
+
+    if($client_id !== null){
+      $sql .= " WHERE d.client_id='".$db->escape((int)$client_id)."'";
+    }
+
+    $sql .= " ORDER BY d.document_date DESC, d.id DESC";
+    return find_by_sql($sql);
+  }
+
+  function find_delivery_order_details($delivery_id, $client_id = null){
+    global $db;
+    ensure_consignment_tables();
+    $delivery_id = (int)$delivery_id;
+    $viewer_client_id = current_client_id();
+
+    if($viewer_client_id !== null){
+      $client_id = $viewer_client_id;
+    }
+
+    $sql  = "SELECT d.*,u.name AS client_name,u.username AS client_username,p.name AS product_name,";
+    $sql .= "actor.name AS created_by_name ";
+    $sql .= "FROM delivery_orders d ";
+    $sql .= "LEFT JOIN users u ON u.id = d.client_id ";
+    $sql .= "LEFT JOIN products p ON p.id = d.product_id ";
+    $sql .= "LEFT JOIN users actor ON actor.id = d.created_by ";
+    $sql .= "WHERE d.id='".$db->escape($delivery_id)."'";
+
+    if($client_id !== null){
+      $sql .= " AND d.client_id='".$db->escape((int)$client_id)."'";
+    }
+
+    $sql .= " LIMIT 1";
+    $result = find_by_sql($sql);
+    return empty($result) ? null : $result[0];
+  }
   /*--------------------------------------------------------------*/
   /* Function for Display Recent product Added
   /*--------------------------------------------------------------*/
@@ -575,7 +844,7 @@ function tableExists($table){
    }
 
    $sql  = "SELECT p.name, COUNT(s.product_id) AS totalSold, SUM(s.qty) AS totalQty";
-   $sql .= " FROM sales s";
+   $sql .= " FROM withdrawals s";
    $sql .= " LEFT JOIN products p ON p.id = s.product_id ";
 
    if($client_id !== null){
@@ -598,7 +867,7 @@ function tableExists($table){
    }
 
    $sql  = "SELECT s.id,s.product_id,s.qty,s.price,s.date,p.name,u.name AS client_name";
-   $sql .= " FROM sales s";
+   $sql .= " FROM withdrawals s";
    $sql .= " LEFT JOIN products p ON s.product_id = p.id";
    $sql .= " LEFT JOIN users u ON u.id = p.client_id";
 
@@ -621,7 +890,7 @@ function find_recent_sale_added($limit, $client_id = null){
   }
 
   $sql  = "SELECT s.id,s.product_id,s.qty,s.price,s.date,p.name,u.name AS client_name";
-  $sql .= " FROM sales s";
+  $sql .= " FROM withdrawals s";
   $sql .= " LEFT JOIN products p ON s.product_id = p.id";
   $sql .= " LEFT JOIN users u ON u.id = p.client_id";
 
@@ -639,15 +908,15 @@ function find_sale_by_dates($start_date,$end_date){
   global $db;
   $start_date  = date("Y-m-d", strtotime($start_date));
   $end_date    = date("Y-m-d", strtotime($end_date));
-  $sql  = "SELECT s.date, p.name,p.sale_price,p.buy_price,";
+  $sql  = "SELECT DATE(s.date) AS date, p.name,p.sale_price,p.buy_price,";
   $sql .= "COUNT(s.product_id) AS total_records,";
   $sql .= "SUM(s.qty) AS total_sales,";
   $sql .= "SUM(p.sale_price * s.qty) AS total_saleing_price,";
   $sql .= "SUM(p.buy_price * s.qty) AS total_buying_price ";
-  $sql .= "FROM sales s ";
+  $sql .= "FROM withdrawals s ";
   $sql .= "LEFT JOIN products p ON s.product_id = p.id";
   $sql .= " WHERE s.date BETWEEN '{$start_date}' AND '{$end_date}'";
-  $sql .= " GROUP BY DATE(s.date),p.name";
+  $sql .= " GROUP BY DATE(s.date),p.name,p.sale_price,p.buy_price";
   $sql .= " ORDER BY DATE(s.date) DESC";
   return $db->query($sql);
 }
@@ -656,13 +925,13 @@ function find_sale_by_dates($start_date,$end_date){
 /*--------------------------------------------------------------*/
 function  dailySales($year,$month){
   global $db;
-  $sql  = "SELECT s.qty,";
+  $sql  = "SELECT SUM(s.qty) AS qty,";
   $sql .= " DATE_FORMAT(s.date, '%Y-%m-%e') AS date,p.name,";
   $sql .= "SUM(p.sale_price * s.qty) AS total_saleing_price";
-  $sql .= " FROM sales s";
+  $sql .= " FROM withdrawals s";
   $sql .= " LEFT JOIN products p ON s.product_id = p.id";
   $sql .= " WHERE DATE_FORMAT(s.date, '%Y-%m' ) = '{$year}-{$month}'";
-  $sql .= " GROUP BY DATE_FORMAT( s.date,  '%e' ),s.product_id";
+  $sql .= " GROUP BY DATE_FORMAT( s.date,  '%Y-%m-%e' ),s.product_id,p.name";
   return find_by_sql($sql);
 }
 /*--------------------------------------------------------------*/
@@ -670,14 +939,14 @@ function  dailySales($year,$month){
 /*--------------------------------------------------------------*/
 function  monthlySales($year){
   global $db;
-  $sql  = "SELECT s.qty,";
+  $sql  = "SELECT SUM(s.qty) AS qty,";
   $sql .= " DATE_FORMAT(s.date, '%Y-%m-%e') AS date,p.name,";
   $sql .= "SUM(p.sale_price * s.qty) AS total_saleing_price";
-  $sql .= " FROM sales s";
+  $sql .= " FROM withdrawals s";
   $sql .= " LEFT JOIN products p ON s.product_id = p.id";
   $sql .= " WHERE DATE_FORMAT(s.date, '%Y' ) = '{$year}'";
-  $sql .= " GROUP BY DATE_FORMAT( s.date,  '%c' ),s.product_id";
-  $sql .= " ORDER BY date_format(s.date, '%c' ) ASC";
+  $sql .= " GROUP BY DATE_FORMAT( s.date,  '%Y-%m-%e' ),s.product_id,p.name";
+  $sql .= " ORDER BY DATE_FORMAT( s.date,  '%Y-%m-%e' ) ASC";
   return find_by_sql($sql);
 }
 

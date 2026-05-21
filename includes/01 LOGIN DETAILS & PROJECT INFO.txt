@@ -19,3 +19,8 @@ Password: special
 
 Username: user
 Password: user 
+
+**Client Login Details**
+
+Username: client
+Password: client

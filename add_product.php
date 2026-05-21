@@ -1,5 +1,5 @@
 <?php
-  $page_title = 'Add Product';
+  $page_title = 'Tambah Barang Titipan';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
   page_require_level(2);
@@ -10,14 +10,14 @@
 ?>
 <?php
  if(isset($_POST['add_product'])){
-   $req_fields = array('product-title','product-categorie','product-quantity','buying-price', 'saleing-price' );
+   $req_fields = array('product-title','product-categorie','product-quantity' );
    validate_fields($req_fields);
    if(empty($errors)){
      $p_name  = remove_junk($db->escape($_POST['product-title']));
      $p_cat   = remove_junk($db->escape($_POST['product-categorie']));
      $p_qty   = (int)$db->escape($_POST['product-quantity']);
-     $p_buy   = remove_junk($db->escape($_POST['buying-price']));
-     $p_sale  = remove_junk($db->escape($_POST['saleing-price']));
+     $p_buy   = '0.00';
+     $p_sale  = '0.00';
      $client_id = isset($_POST['product-client']) && $_POST['product-client'] !== ''
        ? (int)$db->escape($_POST['product-client'])
        : 0;
@@ -40,20 +40,39 @@
            'client_id' => $client_id,
            'reference_type' => 'product',
            'reference_id' => $product_id,
-           'note' => 'Initial stock entry',
+           'note' => 'Stok awal barang titipan',
            'created_at' => $date
          ));
 
          if(!$movement_id){
            delete_by_id('products', $product_id);
-           $session->msg('d',' Product saved but stock history failed to save.');
+           $session->msg('d',' Barang tersimpan, tetapi riwayat stok gagal disimpan.');
+           redirect('add_product.php', false);
+         }
+
+         $delivery_id = create_delivery_order(array(
+           'movement_type' => 'in',
+           'client_id' => $client_id,
+           'product_id' => $product_id,
+           'quantity' => $p_qty,
+           'document_date' => date('Y-m-d', strtotime($date)),
+           'recipient' => $client_id > 0 ? 'Gudang' : '',
+           'reference_type' => 'barang_masuk',
+           'reference_id' => $product_id,
+           'note' => 'Surat jalan otomatis saat barang titipan masuk.'
+         ));
+
+         if(!$delivery_id){
+           delete_by_id('stock_movements', (int)$movement_id);
+           delete_by_id('products', $product_id);
+           $session->msg('d',' Barang tersimpan, tetapi surat jalan gagal dibuat.');
            redirect('add_product.php', false);
          }
        }
-       $session->msg('s',"Product added ");
+       $session->msg('s',"Barang titipan berhasil ditambahkan. ");
        redirect('add_product.php', false);
      } else {
-       $session->msg('d',' Sorry failed to add product. Check duplicate title or database schema.');
+       $session->msg('d',' Maaf, barang titipan gagal ditambahkan. Cek nama barang atau struktur database.');
        redirect('product.php', false);
      }
 
@@ -77,7 +96,7 @@
         <div class="panel-heading">
           <strong>
             <span class="glyphicon glyphicon-th"></span>
-            <span>Add New Product</span>
+            <span>Tambah Barang Titipan</span>
          </strong>
         </div>
         <div class="panel-body">
@@ -88,14 +107,14 @@
                   <span class="input-group-addon">
                    <i class="glyphicon glyphicon-th-large"></i>
                   </span>
-                  <input type="text" class="form-control" name="product-title" placeholder="Product Title">
+                  <input type="text" class="form-control" name="product-title" placeholder="Nama Barang Titipan">
                </div>
               </div>
               <div class="form-group">
                 <div class="row">
                   <div class="col-md-6">
                     <select class="form-control" name="product-categorie">
-                      <option value="">Select Product Category</option>
+                      <option value="">Pilih Kategori Barang</option>
                     <?php  foreach ($all_categories as $cat): ?>
                       <option value="<?php echo (int)$cat['id'] ?>">
                         <?php echo $cat['name'] ?></option>
@@ -104,7 +123,7 @@
                   </div>
                   <div class="col-md-6">
                     <select class="form-control" name="product-photo">
-                      <option value="">Select Product Photo</option>
+                      <option value="">Pilih Foto Barang</option>
                     <?php  foreach ($all_photo as $photo): ?>
                       <option value="<?php echo (int)$photo['id'] ?>">
                         <?php echo $photo['file_name'] ?></option>
@@ -113,7 +132,7 @@
                   </div>
                   <div class="col-md-6" style="margin-top:10px;">
                     <select class="form-control" name="product-client">
-                      <option value="">Internal stock / no client</option>
+                      <option value="">Stok internal / tanpa pelanggan</option>
                     <?php  foreach ($all_clients as $client): ?>
                       <option value="<?php echo (int)$client['id'] ?>">
                         <?php echo remove_junk($client['name']) ?></option>
@@ -130,30 +149,12 @@
                      <span class="input-group-addon">
                       <i class="glyphicon glyphicon-shopping-cart"></i>
                      </span>
-                     <input type="number" class="form-control" name="product-quantity" placeholder="Product Quantity">
+                     <input type="number" class="form-control" name="product-quantity" placeholder="Jumlah Stok Awal">
                   </div>
                  </div>
-                 <div class="col-md-4">
-                   <div class="input-group">
-                     <span class="input-group-addon">
-                       <i class="glyphicon glyphicon-usd"></i>
-                     </span>
-                     <input type="number" class="form-control" name="buying-price" placeholder="Buying Price">
-                     <span class="input-group-addon">.00</span>
-                  </div>
-                 </div>
-                  <div class="col-md-4">
-                    <div class="input-group">
-                      <span class="input-group-addon">
-                        <i class="glyphicon glyphicon-usd"></i>
-                      </span>
-                      <input type="number" class="form-control" name="saleing-price" placeholder="Selling Price">
-                      <span class="input-group-addon">.00</span>
-                   </div>
-                  </div>
                </div>
               </div>
-              <button type="submit" name="add_product" class="btn btn-danger">Add product</button>
+              <button type="submit" name="add_product" class="btn btn-danger">Simpan Barang</button>
           </form>
          </div>
         </div>

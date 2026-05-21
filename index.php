@@ -7,8 +7,8 @@
 <?php include_once('layouts/header.php'); ?>
 <div class="login-page">
     <div class="text-center">
-       <h1>Login Panel</h1>
-       <h4>Inventory Management System</h4>
+       <h1>Login</h1>
+       <h4>Sistem Penitipan Barang</h4>
      </div>
      <?php echo display_msg($msg); ?>
       <form method="post" action="auth.php" class="clearfix">
@@ -21,7 +21,7 @@
             <input type="password" name= "password" class="form-control" placeholder="Password">
         </div>
         <div class="form-group">
-                <button type="submit" class="btn btn-danger" style="border-radius:0%">Login</button>
+                <button type="submit" class="btn btn-danger" style="border-radius:0%">Masuk</button>
         </div>
     </form>
 </div>

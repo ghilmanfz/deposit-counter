@@ -1,5 +1,5 @@
 <?php
-$page_title = 'Sales Report';
+$page_title = 'Laporan Pengambilan';
 $results = '';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
@@ -20,15 +20,15 @@ $results = '';
     endif;
 
   } else {
-    $session->msg("d", "Select dates");
+    $session->msg("d", "Pilih tanggal laporan.");
     redirect('sales_report.php', false);
   }
 ?>
 <!doctype html>
-<html lang="en-US">
+<html lang="id">
  <head>
    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-   <title>Default Page Title</title>
+   <title>Laporan Pengambilan Barang</title>
      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"/>
    <style>
    @media print {
@@ -79,18 +79,16 @@ $results = '';
   <?php if($results): ?>
     <div class="page-break">
        <div class="sale-head">
-           <h1>Inventory Management System - Sales Report</h1>
-           <strong><?php if(isset($start_date)){ echo $start_date;}?> TILL DATE <?php if(isset($end_date)){echo $end_date;}?> </strong>
+           <h1>Sistem Penitipan Barang - Laporan Pengambilan</h1>
+           <strong><?php if(isset($start_date)){ echo $start_date;}?> sampai <?php if(isset($end_date)){echo $end_date;}?> </strong>
        </div>
       <table class="table table-border">
         <thead>
           <tr>
-              <th>Date</th>
-              <th>Product Title</th>
-              <th>Buying Price</th>
-              <th>Selling Price</th>
-              <th>Total Qty</th>
-              <th>TOTAL</th>
+              <th>Tanggal</th>
+              <th>Barang Titipan</th>
+              <th>Total Transaksi</th>
+              <th>Total Jumlah Diambil</th>
           </tr>
         </thead>
         <tbody>
@@ -100,32 +98,16 @@ $results = '';
               <td class="desc">
                 <h6><?php echo remove_junk(ucfirst($result['name']));?></h6>
               </td>
-              <td class="text-right"><?php echo remove_junk($result['buy_price']);?></td>
-              <td class="text-right"><?php echo remove_junk($result['sale_price']);?></td>
+              <td class="text-right"><?php echo remove_junk($result['total_records']);?></td>
               <td class="text-right"><?php echo remove_junk($result['total_sales']);?></td>
-              <td class="text-right"><?php echo remove_junk($result['total_saleing_price']);?></td>
           </tr>
         <?php endforeach; ?>
         </tbody>
-        <tfoot>
-         <tr class="text-right">
-           <td colspan="4"></td>
-           <td colspan="1">Grand Total</td>
-           <td> $
-           <?php echo number_format(total_price($results)[0], 2);?>
-          </td>
-         </tr>
-         <tr class="text-right">
-           <td colspan="4"></td>
-           <td colspan="1">Profit</td>
-           <td> $<?php echo number_format(total_price($results)[1], 2);?></td>
-         </tr>
-        </tfoot>
       </table>
     </div>
   <?php
     else:
-        $session->msg("d", "Sorry no sales has been found. ");
+        $session->msg("d", "Data pengambilan tidak ditemukan.");
         redirect('sales_report.php', false);
      endif;
   ?>

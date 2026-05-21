@@ -8,55 +8,67 @@
   <li>
     <a href="#" class="submenu-toggle">
       <i class="glyphicon glyphicon-user"></i>
-      <span>User Management</span>
+      <span>Manajemen User</span>
     </a>
     <ul class="nav submenu">
-      <li><a href="group.php">Manage Groups</a> </li>
-      <li><a href="users.php">Manage Users</a> </li>
+      <li><a href="group.php">Kelola Grup</a> </li>
+      <li><a href="users.php">Kelola User</a> </li>
    </ul>
   </li>
   <li>
     <a href="categorie.php" >
       <i class="glyphicon glyphicon-indent-left"></i>
-      <span>Categories</span>
+      <span>Kategori Barang</span>
     </a>
   </li>
   <li>
     <a href="#" class="submenu-toggle">
       <i class="glyphicon glyphicon-th-large"></i>
-      <span>Products</span>
+      <span>Barang Titipan</span>
     </a>
     <ul class="nav submenu">
-       <li><a href="product.php">Manage Products</a> </li>
-       <li><a href="add_product.php">Add Products</a> </li>
+       <li><a href="product.php">Data Barang Titipan</a> </li>
+       <li><a href="add_product.php">Tambah Barang Titipan</a> </li>
    </ul>
   </li>
   <li>
     <a href="media.php" >
       <i class="glyphicon glyphicon-picture"></i>
-      <span>Media Files</span>
+      <span>Media</span>
     </a>
   </li>
   <li>
     <a href="#" class="submenu-toggle">
       <i class="glyphicon glyphicon-credit-card"></i>
-       <span>Sales</span>
+       <span>Transaksi Barang</span>
       </a>
       <ul class="nav submenu">
-         <li><a href="sales.php">Manage Sales</a> </li>
-         <li><a href="add_sale.php">Add Sale</a> </li>
-         <li><a href="stock_history.php">Stock History</a> </li>
+         <li><a href="withdrawals.php">Pengambilan Barang</a> </li>
+         <li><a href="add_withdrawal.php">Tambah Pengambilan Barang</a> </li>
+         <li><a href="stock_history.php">Riwayat Stok</a> </li>
      </ul>
+  </li>
+  <li>
+    <a href="billings.php">
+      <i class="glyphicon glyphicon-list-alt"></i>
+      <span>Penagihan</span>
+    </a>
+  </li>
+  <li>
+    <a href="delivery_orders.php">
+      <i class="glyphicon glyphicon-file"></i>
+      <span>Surat Jalan</span>
+    </a>
   </li>
   <li>
     <a href="#" class="submenu-toggle">
       <i class="glyphicon glyphicon-duplicate"></i>
-       <span>Sales Report</span>
+       <span>Laporan Barang</span>
       </a>
       <ul class="nav submenu">
-        <li><a href="sales_report.php">Sales by dates </a></li>
-        <li><a href="monthly_sales.php">Monthly sales</a></li>
-        <li><a href="daily_sales.php">Daily sales</a> </li>
+        <li><a href="withdrawals_report.php">Laporan Periode</a></li>
+        <li><a href="monthly_withdrawals.php">Laporan Bulanan</a></li>
+        <li><a href="daily_withdrawals.php">Laporan Harian</a> </li>
       </ul>
   </li>
 </ul>

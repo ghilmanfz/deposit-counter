@@ -1,5 +1,5 @@
 <?php
-  $page_title = 'Admin Home Page';
+  $page_title = 'Dashboard Admin';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
    page_require_level(1);
@@ -7,7 +7,7 @@
 <?php
  $c_categorie     = count_by_id('categories');
  $c_product       = count_by_id('products');
- $c_sale          = count_by_id('sales');
+ $c_sale          = count_by_id('withdrawals');
  $c_user          = count_by_id('users');
  $products_sold   = find_higest_saleing_product('10');
  $recent_products = find_recent_product_added('5');
@@ -29,7 +29,7 @@
         </div>
         <div class="panel-value pull-right">
           <h2 class="margin-top"> <?php  echo $c_user['total']; ?> </h2>
-          <p class="text-muted">Users</p>
+          <p class="text-muted">User</p>
         </div>
        </div>
     </div>
@@ -43,7 +43,7 @@
         </div>
         <div class="panel-value pull-right">
           <h2 class="margin-top"> <?php  echo $c_categorie['total']; ?> </h2>
-          <p class="text-muted">Categories</p>
+          <p class="text-muted">Kategori</p>
         </div>
        </div>
     </div>
@@ -57,13 +57,13 @@
         </div>
         <div class="panel-value pull-right">
           <h2 class="margin-top"> <?php  echo $c_product['total']; ?> </h2>
-          <p class="text-muted">Products</p>
+          <p class="text-muted">Barang Titipan</p>
         </div>
        </div>
     </div>
 	</a>
 	
-	<a href="sales.php" style="color:black;">
+	<a href="withdrawals.php" style="color:black;">
     <div class="col-md-3">
        <div class="panel panel-box clearfix">
          <div class="panel-icon pull-left bg-green">
@@ -71,7 +71,7 @@
         </div>
         <div class="panel-value pull-right">
           <h2 class="margin-top"> <?php  echo $c_sale['total']; ?></h2>
-          <p class="text-muted">Sales</p>
+          <p class="text-muted">Pengambilan</p>
         </div>
        </div>
     </div>
@@ -84,16 +84,16 @@
        <div class="panel-heading">
          <strong>
            <span class="glyphicon glyphicon-th"></span>
-           <span>Highest Selling Products</span>
+           <span>Barang Paling Sering Diambil</span>
          </strong>
        </div>
        <div class="panel-body">
          <table class="table table-striped table-bordered table-condensed">
           <thead>
            <tr>
-             <th>Title</th>
-             <th>Total Sold</th>
-             <th>Total Quantity</th>
+             <th>Barang</th>
+             <th>Total Transaksi</th>
+             <th>Total Jumlah</th>
            <tr>
           </thead>
           <tbody>
@@ -114,7 +114,7 @@
         <div class="panel-heading">
           <strong>
             <span class="glyphicon glyphicon-th"></span>
-            <span>LATEST SALES</span>
+            <span>Pengambilan Terbaru</span>
           </strong>
         </div>
         <div class="panel-body">
@@ -122,9 +122,9 @@
        <thead>
          <tr>
            <th class="text-center" style="width: 50px;">#</th>
-           <th>Product Name</th>
-           <th>Date</th>
-           <th>Total Sale</th>
+           <th>Nama Barang</th>
+           <th>Tanggal</th>
+           <th>Jumlah</th>
          </tr>
        </thead>
        <tbody>
@@ -132,12 +132,12 @@
          <tr>
            <td class="text-center"><?php echo count_id();?></td>
            <td>
-            <a href="edit_sale.php?id=<?php echo (int)$recent_sale['id']; ?>">
+            <a href="edit_withdrawal.php?id=<?php echo (int)$recent_sale['id']; ?>">
              <?php echo remove_junk(first_character($recent_sale['name'])); ?>
            </a>
            </td>
            <td><?php echo remove_junk(ucfirst($recent_sale['date'])); ?></td>
-           <td>$<?php echo remove_junk(first_character($recent_sale['price'])); ?></td>
+           <td><?php echo (int)$recent_sale['qty']; ?></td>
         </tr>
 
        <?php endforeach; ?>
@@ -151,7 +151,7 @@
       <div class="panel-heading">
         <strong>
           <span class="glyphicon glyphicon-th"></span>
-          <span>Recently Added Products</span>
+          <span>Barang Titipan Terbaru</span>
         </strong>
       </div>
       <div class="panel-body">
@@ -167,7 +167,7 @@
                 <?php endif;?>
                 <?php echo remove_junk(first_character($recent_product['name']));?>
                   <span class="label label-warning pull-right">
-                 $<?php echo (int)$recent_product['sale_price']; ?>
+                 Stok: <?php echo (int)$recent_product['quantity']; ?>
                   </span>
                 </h4>
                 <span class="list-group-item-text pull-right">

@@ -1,6 +1,6 @@
-# Inventory System (PHP)
+# Sistem Penitipan Barang (PHP)
 
-Aplikasi manajemen inventori berbasis PHP + MySQL.
+Aplikasi penitipan barang berbasis PHP + MySQL. Sistem ini dipakai untuk mencatat barang yang dititipkan client, memantau stok, mencatat barang masuk, dan mencatat pengambilan barang dari gudang.
 
 ## Informasi Proyek
 
@@ -11,10 +11,14 @@ Aplikasi manajemen inventori berbasis PHP + MySQL.
 ## Fitur Utama
 
 - Manajemen kategori
-- Manajemen produk
-- Manajemen penjualan
-- Laporan penjualan harian dan bulanan
-- Manajemen user (admin, special user, employee)
+- Manajemen barang titipan
+- Manajemen client pemilik barang
+- Riwayat stok masuk, keluar, dan penyesuaian
+- Pengambilan barang dari gudang
+- Penagihan/invoice client dan jatuh tempo
+- Surat jalan barang masuk dan keluar
+- Laporan pengambilan harian dan bulanan
+- Manajemen user (admin, staff, client)
 
 ## Kebutuhan Sistem
 
@@ -44,11 +48,20 @@ define('DB_PASS', '');
 define('DB_NAME', 'inventory_system');
 ```
 
-## Catatan Penting
+## Catatan Penting untuk Bimbingan
 
 Di `includes/config.php` bawaan, nilai `DB_NAME` saat ini adalah `inventorysystem` (tanpa underscore), sementara file SQL menggunakan `inventory_system` (dengan underscore).
 
 Agar aplikasi tersambung ke database hasil import, pastikan nama database di `includes/config.php` sama dengan database yang kamu buat.
+
+Penjelasan database singkat:
+
+- `products`: data barang titipan. Kolom `client_id` menghubungkan barang dengan client pemilik barang.
+- `stock_movements`: riwayat stok masuk, stok keluar, dan penyesuaian stok.
+- `sales`: tabel bawaan sistem lama yang sekarang dipakai sebagai arsip transaksi pengambilan barang.
+- `billings`: data invoice/tagihan client, nominal, jatuh tempo, dan status pembayaran.
+- `delivery_orders`: data surat jalan barang masuk dan barang keluar.
+- `users`: data akun admin, staff, dan client.
 
 ## Akun Login Default
 
@@ -63,6 +76,10 @@ Agar aplikasi tersambung ke database hasil import, pastikan nama database di `in
 ### User (Employee)
 - Username: `user`
 - Password: `user`
+
+### Client
+- Username: `client`
+- Password: `client`
 
 ## Struktur Direktori Singkat
 
