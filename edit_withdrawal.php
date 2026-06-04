@@ -126,7 +126,7 @@ if(!$sale){
         <span>Edit Pengambilan Barang</span>
      </strong>
      <div class="pull-right">
-       <a href="sales.php" class="btn btn-primary">Lihat Semua Pengambilan</a>
+       <a href="withdrawals.php" class="btn btn-primary">Lihat Semua Pengambilan</a>
      </div>
     </div>
     <div class="panel-body">

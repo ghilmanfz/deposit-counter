@@ -37,6 +37,7 @@
               <?php endif; ?>
               <th class="text-center">Jenis</th>
               <th class="text-center">Jumlah</th>
+              <th class="text-center">Satuan</th>
               <th class="text-center">Sebelum</th>
               <th class="text-center">Sesudah</th>
               <th>Catatan</th>
@@ -54,6 +55,7 @@
               <?php endif; ?>
               <td class="text-center"><?php echo $movement['movement_type'] === 'in' ? 'Masuk' : ($movement['movement_type'] === 'out' ? 'Keluar' : 'Penyesuaian'); ?></td>
               <td class="text-center"><?php echo (int)$movement['quantity']; ?></td>
+              <td class="text-center"><?php echo !empty($movement['unit_name']) ? remove_junk($movement['unit_name']) : '-'; ?></td>
               <td class="text-center"><?php echo (int)$movement['quantity_before']; ?></td>
               <td class="text-center"><?php echo (int)$movement['quantity_after']; ?></td>
               <td><?php echo !empty($movement['note']) ? remove_junk($movement['note']) : '-'; ?></td>

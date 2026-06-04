@@ -28,7 +28,12 @@
                 <th class="text-center" style="width: 12%;"> Client </th>
                 <th class="text-center" style="width: 10%;"> Kategori </th>
                 <th class="text-center" style="width: 10%;"> Stok </th>
-                <th class="text-center" style="width: 10%;"> Tanggal Masuk </th>
+                <th class="text-center" style="width: 8%;"> Satuan </th>
+                <th class="text-center" style="width: 8%;"> Keluar </th>
+                <th class="text-center" style="width: 8%;"> Cacat </th>
+                <th class="text-center" style="width: 12%;"> Foto Cacat </th>
+                <th class="text-center" style="width: 12%;"> Tanggal Masuk</th>
+                <th class="text-center" style="width: 12%;"> Tanggal Keluar </th>
                 <th class="text-center" style="width: 100px;"> Aksi </th>
               </tr>
             </thead>
@@ -47,7 +52,30 @@
                 <td class="text-center"><?php echo !empty($product['client_name']) ? remove_junk($product['client_name']) : 'Internal'; ?></td>
                 <td class="text-center"> <?php echo remove_junk($product['categorie']); ?></td>
                 <td class="text-center"> <?php echo remove_junk($product['quantity']); ?></td>
+                <td class="text-center"> <?php echo !empty($product['unit_name']) ? remove_junk($product['unit_name']) : '-'; ?></td>
+                <td class="text-center"> <?php echo (int)$product['total_out']; ?></td>
+                <?php $defect_summary = find_product_defect_summary((int)$product['id']); ?>
+                <td class="text-center">
+                  <a href="product_defects.php?product_id=<?php echo (int)$product['id']; ?>" class="btn btn-default btn-xs">
+                    <?php echo (int)$defect_summary['total_defect']; ?>
+                  </a>
+                </td>
+                <td class="text-center">
+                  <?php $defect_photos = find_product_defect_photos_by_product((int)$product['id']); ?>
+                  <?php if(!empty($defect_photos)): ?>
+                    <div style="display:flex; justify-content:center; gap:4px; flex-wrap:wrap;">
+                      <?php foreach($defect_photos as $photo): ?>
+                        <a href="uploads/defects/<?php echo remove_junk($photo['file_name']); ?>" target="_blank">
+                          <img src="uploads/defects/<?php echo remove_junk($photo['file_name']); ?>" class="img-thumbnail" style="width:60px; height:60px; object-fit:cover;" alt="defect-photo" />
+                        </a>
+                      <?php endforeach; ?>
+                    </div>
+                  <?php else: ?>
+                    -
+                  <?php endif; ?>
+                </td>
                 <td class="text-center"> <?php echo read_date($product['date']); ?></td>
+                <td class="text-center"> <?php echo !empty($product['last_out_date']) ? read_date($product['last_out_date']) : '-'; ?></td>
                 <td class="text-center">
                   <div class="btn-group">
                     <a href="edit_product.php?id=<?php echo (int)$product['id'];?>" class="btn btn-info btn-xs"  title="Edit" data-toggle="tooltip">

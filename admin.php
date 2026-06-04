@@ -11,7 +11,9 @@
  $c_user          = count_by_id('users');
  $products_sold   = find_higest_saleing_product('10');
  $recent_products = find_recent_product_added('5');
- $recent_sales    = find_recent_sale_added('5')
+ $recent_sales    = find_recent_sale_added('5');
+ $inventory_rows  = join_product_table();
+ $pickup_requests = find_pickup_requests();
 ?>
 <?php include_once('layouts/header.php'); ?>
 
@@ -180,6 +182,42 @@
  </div>
 </div>
  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <strong><span class="glyphicon glyphicon-th-list"></span> <span>Ringkasan Stok per Client</span></strong>
+        </div>
+        <div class="panel-body">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th class="text-center" style="width:50px;">#</th>
+                <th>Client</th>
+                <th>Barang</th>
+                <th class="text-center">Stok</th>
+                <th class="text-center">Satuan</th>
+                <th class="text-center">Kategori</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach($inventory_rows as $row): ?>
+              <tr>
+                <td class="text-center"><?php echo count_id(); ?></td>
+                <td><?php echo !empty($row['client_name']) ? remove_junk($row['client_name']) : 'Internal'; ?></td>
+                <td><?php echo remove_junk($row['name']); ?></td>
+                <td class="text-center"><?php echo (int)$row['quantity']; ?></td>
+                <td class="text-center"><?php echo !empty($row['unit_name']) ? remove_junk($row['unit_name']) : '-'; ?></td>
+                <td class="text-center"><?php echo remove_junk($row['categorie']); ?></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="row">
 
   </div>

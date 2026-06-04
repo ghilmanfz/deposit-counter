@@ -10,6 +10,14 @@
     $session->msg('d',' Surat jalan tidak ditemukan.');
     redirect('delivery_orders.php', false);
   }
+
+  if($order['movement_type'] === 'out' && (int)$order['stock_processed'] === 0){
+    if(!process_delivery_order_stock($delivery_id)){
+      $session->msg('d',' Surat jalan tidak bisa diproses karena stok tidak mencukupi atau data tidak valid.');
+      redirect('delivery_orders.php', false);
+    }
+    $order = find_delivery_order_details($delivery_id);
+  }
 ?>
 <!doctype html>
 <html lang="id">
@@ -55,6 +63,7 @@
         <tr>
           <th>Barang Titipan</th>
           <th class="text-center">Jumlah</th>
+          <th class="text-center">Satuan</th>
           <th>Catatan</th>
         </tr>
       </thead>
@@ -62,6 +71,7 @@
         <tr>
           <td><?php echo !empty($order['product_name']) ? remove_junk($order['product_name']) : '-'; ?></td>
           <td class="text-center"><?php echo (int)$order['quantity']; ?></td>
+          <td class="text-center"><?php echo !empty($order['unit_name']) ? remove_junk($order['unit_name']) : '-'; ?></td>
           <td><?php echo !empty($order['note']) ? remove_junk($order['note']) : '-'; ?></td>
         </tr>
       </tbody>

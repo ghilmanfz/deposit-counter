@@ -29,4 +29,10 @@
       <span>Surat Jalan</span>
     </a>
   </li>
+  <li>
+    <a href="pickup_requests.php">
+      <i class="glyphicon glyphicon-send"></i>
+      <span>Request Pengambilan Barang</span>
+    </a>
+  </li>
 </ul>

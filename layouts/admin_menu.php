@@ -22,6 +22,12 @@
     </a>
   </li>
   <li>
+    <a href="units.php" >
+      <i class="glyphicon glyphicon-tags"></i>
+      <span>Satuan Barang</span>
+    </a>
+  </li>
+  <li>
     <a href="#" class="submenu-toggle">
       <i class="glyphicon glyphicon-th-large"></i>
       <span>Barang Titipan</span>
@@ -43,6 +49,7 @@
        <span>Transaksi Barang</span>
       </a>
       <ul class="nav submenu">
+         <li><a href="pickup_requests.php">Request Pengambilan</a> </li>
          <li><a href="withdrawals.php">Pengambilan Barang</a> </li>
          <li><a href="add_withdrawal.php">Tambah Pengambilan Barang</a> </li>
          <li><a href="stock_history.php">Riwayat Stok</a> </li>

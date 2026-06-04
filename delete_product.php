@@ -14,6 +14,17 @@
   $p_id = (int)$product['id'];
   
   // Hapus semua data terkait untuk menghindari yatim (orphan records)
+  $defect_ids = find_by_sql("SELECT id FROM product_defects WHERE product_id='{$p_id}'");
+  foreach($defect_ids as $defect){
+    $photos = find_defect_photos((int)$defect['id']);
+    foreach($photos as $photo){
+      $file = SITE_ROOT.DS.'..'.DS.'uploads'.DS.'defects'.DS.$photo['file_name'];
+      if(is_file($file)){ @unlink($file); }
+    }
+    $db->query("DELETE FROM product_defect_photos WHERE defect_id='".(int)$defect['id']."'");
+  }
+  $db->query("DELETE FROM product_defects WHERE product_id='{$p_id}'");
+  $db->query("DELETE FROM pickup_requests WHERE product_id='{$p_id}'");
   // Stock movements
   $db->query("DELETE FROM stock_movements WHERE product_id='{$p_id}'");
   

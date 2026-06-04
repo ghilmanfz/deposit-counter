@@ -272,11 +272,12 @@ function tableExists($table){
       $client_id = $viewer_client_id;
     }
 
-    $sql  = "SELECT p.*,c.name AS categorie,m.file_name AS image,u.name AS client_name ";
+    $sql  = "SELECT p.*,c.name AS categorie,m.file_name AS image,u.name AS client_name,un.name AS unit_name ";
     $sql .= "FROM products p ";
     $sql .= "LEFT JOIN categories c ON c.id = p.categorie_id ";
     $sql .= "LEFT JOIN media m ON m.id = p.media_id ";
     $sql .= "LEFT JOIN users u ON u.id = p.client_id ";
+    $sql .= "LEFT JOIN units un ON un.id = p.unit_id ";
     $sql .= "WHERE p.id='{$product_id}'";
 
     if($client_id !== null){
@@ -299,12 +300,15 @@ function tableExists($table){
        $client_id = $viewer_client_id;
      }
 
-     $sql  =" SELECT p.id,p.name,p.quantity,p.buy_price,p.sale_price,p.client_id,p.media_id,p.date,c.name";
-    $sql  .=" AS categorie,m.file_name AS image,u.name AS client_name";
-    $sql  .=" FROM products p";
+     $sql  =" SELECT p.id,p.name,p.quantity,p.buy_price,p.sale_price,p.client_id,p.unit_id,p.media_id,p.date,";
+     $sql .= "(SELECT COALESCE(SUM(quantity),0) FROM stock_movements sm WHERE sm.product_id=p.id AND sm.movement_type='out') AS total_out,";
+     $sql .= "(SELECT MAX(created_at) FROM stock_movements sm WHERE sm.product_id=p.id AND sm.movement_type='out') AS last_out_date,";
+     $sql .= " c.name AS categorie,m.file_name AS image,u.name AS client_name,un.name AS unit_name";
+     $sql .= " FROM products p";
     $sql  .=" LEFT JOIN categories c ON c.id = p.categorie_id";
     $sql  .=" LEFT JOIN media m ON m.id = p.media_id";
     $sql  .=" LEFT JOIN users u ON u.id = p.client_id";
+    $sql  .=" LEFT JOIN units un ON un.id = p.unit_id";
 
     if($client_id !== null){
       $sql .= " WHERE p.client_id='".$db->escape((int)$client_id)."'";
@@ -327,9 +331,10 @@ function tableExists($table){
        $client_id = $viewer_client_id;
      }
 
-     $sql  = "SELECT p.id,p.name,p.quantity,p.client_id,u.name AS client_name ";
+     $sql  = "SELECT p.id,p.name,p.quantity,p.client_id,p.unit_id,u.name AS client_name,un.name AS unit_name ";
      $sql .= "FROM products p ";
      $sql .= "LEFT JOIN users u ON u.id = p.client_id ";
+     $sql .= "LEFT JOIN units un ON un.id = p.unit_id ";
      $sql .= "WHERE p.quantity > 0 AND p.name like '%$p_name%'";
 
      if($client_id !== null){
@@ -353,8 +358,9 @@ function tableExists($table){
       $client_id = $viewer_client_id;
     }
 
-    $sql  = "SELECT p.*,u.name AS client_name FROM products p ";
+    $sql  = "SELECT p.*,u.name AS client_name,un.name AS unit_name FROM products p ";
     $sql .= "LEFT JOIN users u ON u.id = p.client_id ";
+    $sql .= "LEFT JOIN units un ON un.id = p.unit_id ";
     $sql .= "WHERE p.name ='{$title}'";
 
     if($client_id !== null){
@@ -376,13 +382,14 @@ function tableExists($table){
       $client_id = $viewer_client_id;
     }
 
-    $sql  = "SELECT sm.id,sm.product_id,sm.client_id,sm.movement_type,sm.quantity,";
+    $sql  = "SELECT sm.id,sm.product_id,sm.client_id,sm.movement_type,sm.quantity,sm.unit_id,";
     $sql .= "sm.quantity_before,sm.quantity_after,sm.reference_type,sm.reference_id,";
     $sql .= "sm.note,sm.created_at,p.name AS product_name,u.name AS client_name,";
-    $sql .= "actor.name AS created_by_name ";
+    $sql .= "actor.name AS created_by_name,un.name AS unit_name ";
     $sql .= "FROM stock_movements sm ";
     $sql .= "LEFT JOIN products p ON p.id = sm.product_id ";
     $sql .= "LEFT JOIN users u ON u.id = sm.client_id ";
+    $sql .= "LEFT JOIN units un ON un.id = sm.unit_id ";
     $sql .= "LEFT JOIN users actor ON actor.id = sm.created_by";
 
     if($client_id !== null){
@@ -504,6 +511,7 @@ function tableExists($table){
     }
 
     $client_id = isset($options['client_id']) ? (int)$options['client_id'] : (int)$product['client_id'];
+    $unit_id = isset($options['unit_id']) ? (int)$options['unit_id'] : (isset($product['unit_id']) ? (int)$product['unit_id'] : 0);
     $reference_type = isset($options['reference_type']) ? $db->escape($options['reference_type']) : '';
     $reference_id = isset($options['reference_id']) ? (int)$options['reference_id'] : 0;
     $note = isset($options['note']) ? $db->escape($options['note']) : '';
@@ -524,11 +532,12 @@ function tableExists($table){
     $created_by_value = $created_by > 0 ? "'{$created_by}'" : "NULL";
 
     $sql  = "INSERT INTO stock_movements (";
-    $sql .= "product_id,client_id,movement_type,quantity,quantity_before,quantity_after,";
+    $sql .= "product_id,client_id,movement_type,quantity,unit_id,quantity_before,quantity_after,";
     $sql .= "reference_type,reference_id,note,created_by,created_at";
     $sql .= ") VALUES (";
+    $unit_value = $unit_id > 0 ? "'{$unit_id}'" : "NULL";
     $sql .= "'".$db->escape((int)$product_id)."',{$client_value},'".$db->escape($movement_type)."',";
-    $sql .= "'".$db->escape((int)$quantity)."','".$db->escape((int)$quantity_before)."',";
+    $sql .= "'".$db->escape((int)$quantity)."',{$unit_value},'".$db->escape((int)$quantity_before)."',";
     $sql .= "'".$db->escape((int)$quantity_after)."',{$reference_type_value},{$reference_id_value},";
     $sql .= "{$note_value},{$created_by_value},'{$created_at}'";
     $sql .= ")";
@@ -595,6 +604,7 @@ function tableExists($table){
 
     $db->query($billings_sql);
     $db->query($delivery_sql);
+    if(function_exists('ensure_warehouse_schema')){ ensure_warehouse_schema(true); }
   }
 
   function generate_consignment_number($prefix){
@@ -666,9 +676,13 @@ function tableExists($table){
     $vehicle_no = !empty($data['vehicle_no']) ? "'".$db->escape($data['vehicle_no'])."'" : "NULL";
     $reference_type = isset($data['reference_type']) ? $db->escape($data['reference_type']) : '';
     $reference_id = isset($data['reference_id']) ? (int)$data['reference_id'] : 0;
-    $note = !empty($data['note']) ? "'".$db->escape($data['note'])."'" : "NULL";
+    $pickup_request_id = isset($data['pickup_request_id']) ? (int)$data['pickup_request_id'] : 0;
+    $scheduled_at = !empty($data['scheduled_at']) ? "'".$db->escape($data['scheduled_at'])."'" : "NULL";
     $created_by = isset($data['created_by']) ? (int)$data['created_by'] : 0;
     $created_at = !empty($data['created_at']) ? $db->escape($data['created_at']) : make_date();
+    $stock_processed = isset($data['stock_processed']) ? (int)$data['stock_processed'] : (($movement_type === 'out' && $reference_type === 'request_pengambilan') ? 0 : 1);
+    $stock_processed_at = $stock_processed === 1 ? "'".$db->escape($created_at)."'" : "NULL";
+    $note = !empty($data['note']) ? "'".$db->escape($data['note'])."'" : "NULL";
 
     if($created_by === 0){
       $user = current_user();
@@ -683,11 +697,12 @@ function tableExists($table){
 
     $sql  = "INSERT INTO delivery_orders (";
     $sql .= "document_no,movement_type,client_id,product_id,quantity,document_date,recipient,";
-    $sql .= "driver_name,vehicle_no,reference_type,reference_id,note,created_by,created_at";
+    $sql .= "driver_name,vehicle_no,reference_type,reference_id,pickup_request_id,scheduled_at,stock_processed,stock_processed_at,note,created_by,created_at";
     $sql .= ") VALUES (";
     $sql .= "'{$document_no}','{$movement_type}',{$client_value},{$product_value},'".$db->escape($quantity)."',";
     $sql .= "'{$document_date}',{$recipient},{$driver_name},{$vehicle_no},{$reference_type_value},";
-    $sql .= "{$reference_id_value},{$note},{$created_by_value},'{$created_at}'";
+    $pickup_request_value = $pickup_request_id > 0 ? "'{$pickup_request_id}'" : "NULL";
+    $sql .= "{$reference_id_value},{$pickup_request_value},{$scheduled_at},'{$stock_processed}',{$stock_processed_at},{$note},{$created_by_value},'{$created_at}'";
     $sql .= ")";
 
     if($db->query($sql)){
@@ -768,10 +783,11 @@ function tableExists($table){
       $client_id = $viewer_client_id;
     }
 
-    $sql  = "SELECT d.*,u.name AS client_name,p.name AS product_name,actor.name AS created_by_name ";
+    $sql  = "SELECT d.*,u.name AS client_name,p.name AS product_name,un.name AS unit_name,actor.name AS created_by_name ";
     $sql .= "FROM delivery_orders d ";
     $sql .= "LEFT JOIN users u ON u.id = d.client_id ";
     $sql .= "LEFT JOIN products p ON p.id = d.product_id ";
+    $sql .= "LEFT JOIN units un ON un.id = p.unit_id ";
     $sql .= "LEFT JOIN users actor ON actor.id = d.created_by";
 
     if($client_id !== null){
@@ -792,11 +808,12 @@ function tableExists($table){
       $client_id = $viewer_client_id;
     }
 
-    $sql  = "SELECT d.*,u.name AS client_name,u.username AS client_username,p.name AS product_name,";
+    $sql  = "SELECT d.*,u.name AS client_name,u.username AS client_username,p.name AS product_name,un.name AS unit_name,";
     $sql .= "actor.name AS created_by_name ";
     $sql .= "FROM delivery_orders d ";
     $sql .= "LEFT JOIN users u ON u.id = d.client_id ";
     $sql .= "LEFT JOIN products p ON p.id = d.product_id ";
+    $sql .= "LEFT JOIN units un ON un.id = p.unit_id ";
     $sql .= "LEFT JOIN users actor ON actor.id = d.created_by ";
     $sql .= "WHERE d.id='".$db->escape($delivery_id)."'";
 
@@ -819,11 +836,12 @@ function tableExists($table){
      $client_id = $viewer_client_id;
    }
 
-  $sql   = " SELECT p.id,p.name,p.quantity,p.sale_price,p.client_id,p.media_id,p.date,c.name AS categorie,";
-   $sql  .= "m.file_name AS image,u.name AS client_name FROM products p";
+  $sql   = " SELECT p.id,p.name,p.quantity,p.sale_price,p.client_id,p.unit_id,p.media_id,p.date,c.name AS categorie,";
+   $sql  .= "m.file_name AS image,u.name AS client_name,un.name AS unit_name FROM products p";
    $sql  .= " LEFT JOIN categories c ON c.id = p.categorie_id";
    $sql  .= " LEFT JOIN media m ON m.id = p.media_id";
    $sql  .= " LEFT JOIN users u ON u.id = p.client_id";
+   $sql  .= " LEFT JOIN units un ON un.id = p.unit_id";
 
    if($client_id !== null){
      $sql .= " WHERE p.client_id='".$db->escape((int)$client_id)."'";
@@ -866,10 +884,11 @@ function tableExists($table){
      $client_id = $viewer_client_id;
    }
 
-   $sql  = "SELECT s.id,s.product_id,s.qty,s.price,s.date,p.name,u.name AS client_name";
+   $sql  = "SELECT s.id,s.product_id,s.qty,s.price,s.date,p.name,u.name AS client_name,un.name AS unit_name";
    $sql .= " FROM withdrawals s";
    $sql .= " LEFT JOIN products p ON s.product_id = p.id";
    $sql .= " LEFT JOIN users u ON u.id = p.client_id";
+   $sql .= " LEFT JOIN units un ON un.id = p.unit_id";
 
    if($client_id !== null){
      $sql .= " WHERE p.client_id='".$db->escape((int)$client_id)."'";
@@ -889,10 +908,11 @@ function find_recent_sale_added($limit, $client_id = null){
     $client_id = $viewer_client_id;
   }
 
-  $sql  = "SELECT s.id,s.product_id,s.qty,s.price,s.date,p.name,u.name AS client_name";
+  $sql  = "SELECT s.id,s.product_id,s.qty,s.price,s.date,p.name,u.name AS client_name,un.name AS unit_name";
   $sql .= " FROM withdrawals s";
   $sql .= " LEFT JOIN products p ON s.product_id = p.id";
   $sql .= " LEFT JOIN users u ON u.id = p.client_id";
+  $sql .= " LEFT JOIN units un ON un.id = p.unit_id";
 
   if($client_id !== null){
     $sql .= " WHERE p.client_id='".$db->escape((int)$client_id)."'";
@@ -949,5 +969,431 @@ function  monthlySales($year){
   $sql .= " ORDER BY DATE_FORMAT( s.date,  '%Y-%m-%e' ) ASC";
   return find_by_sql($sql);
 }
+
+
+
+/*--------------------------------------------------------------*/
+/* Schema and feature helpers for penitipan barang client/admin
+/*--------------------------------------------------------------*/
+function column_exists($table, $column){
+  global $db;
+  $table = $db->escape($table);
+  $column = $db->escape($column);
+  $result = $db->query("SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
+  return ($result && $db->num_rows($result) > 0);
+}
+
+function ensure_upload_directory($dir){
+  if(!is_dir($dir)){
+    @mkdir($dir, 0775, true);
+  }
+  return is_dir($dir) && is_writable($dir);
+}
+
+function ensure_warehouse_schema($force = false){
+  static $done = false;
+  global $db;
+  if($done && !$force){ return true; }
+
+  $db->query("CREATE TABLE IF NOT EXISTS units (
+    id int(11) unsigned NOT NULL AUTO_INCREMENT,
+    name varchar(60) NOT NULL,
+    description varchar(255) DEFAULT NULL,
+    created_at datetime NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY name (name)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3");
+
+  $default_units = array('unit','dus','krat','lembar','palet');
+  foreach($default_units as $unit){
+    $safe = $db->escape($unit);
+    $db->query("INSERT IGNORE INTO units (name,description,created_at) VALUES ('{$safe}','Satuan default sistem','".make_date()."')");
+  }
+
+  if(tableExists('products') && !column_exists('products','unit_id')){
+    $db->query("ALTER TABLE products ADD unit_id int(11) unsigned DEFAULT NULL AFTER client_id");
+    $db->query("UPDATE products SET unit_id=(SELECT id FROM units WHERE name='unit' LIMIT 1) WHERE unit_id IS NULL");
+  }
+
+  if(tableExists('stock_movements') && !column_exists('stock_movements','unit_id')){
+    $db->query("ALTER TABLE stock_movements ADD unit_id int(11) unsigned DEFAULT NULL AFTER quantity");
+    $db->query("UPDATE stock_movements sm LEFT JOIN products p ON p.id=sm.product_id SET sm.unit_id=p.unit_id WHERE sm.unit_id IS NULL");
+  }
+
+  $db->query("CREATE TABLE IF NOT EXISTS product_defects (
+    id int(11) unsigned NOT NULL AUTO_INCREMENT,
+    product_id int(11) unsigned NOT NULL,
+    client_id int(11) unsigned DEFAULT NULL,
+    defect_qty int(11) NOT NULL DEFAULT '0',
+    note text DEFAULT NULL,
+    created_by int(11) unsigned DEFAULT NULL,
+    created_at datetime NOT NULL,
+    PRIMARY KEY (id),
+    KEY product_id (product_id),
+    KEY client_id (client_id),
+    KEY created_by (created_by)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3");
+
+  $db->query("CREATE TABLE IF NOT EXISTS product_defect_photos (
+    id int(11) unsigned NOT NULL AUTO_INCREMENT,
+    defect_id int(11) unsigned NOT NULL,
+    file_name varchar(255) NOT NULL,
+    file_type varchar(100) DEFAULT NULL,
+    created_at datetime NOT NULL,
+    PRIMARY KEY (id),
+    KEY defect_id (defect_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3");
+
+  $db->query("CREATE TABLE IF NOT EXISTS pickup_requests (
+    id int(11) unsigned NOT NULL AUTO_INCREMENT,
+    request_no varchar(50) NOT NULL,
+    client_id int(11) unsigned NOT NULL,
+    product_id int(11) unsigned NOT NULL,
+    unit_id int(11) unsigned DEFAULT NULL,
+    quantity int(11) NOT NULL,
+    pickup_date date NOT NULL,
+    pickup_time time NOT NULL,
+    driver_name varchar(100) NOT NULL,
+    vehicle_no varchar(50) NOT NULL,
+    status varchar(30) NOT NULL DEFAULT 'pending',
+    admin_note text DEFAULT NULL,
+    processed_by int(11) unsigned DEFAULT NULL,
+    processed_at datetime DEFAULT NULL,
+    created_at datetime NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY request_no (request_no),
+    KEY client_id (client_id),
+    KEY product_id (product_id),
+    KEY unit_id (unit_id),
+    KEY status (status)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3");
+
+  if(tableExists('delivery_orders')){
+    if(!column_exists('delivery_orders','pickup_request_id')){
+      $db->query("ALTER TABLE delivery_orders ADD pickup_request_id int(11) unsigned DEFAULT NULL AFTER reference_id");
+    }
+    if(!column_exists('delivery_orders','scheduled_at')){
+      $db->query("ALTER TABLE delivery_orders ADD scheduled_at datetime DEFAULT NULL AFTER pickup_request_id");
+    }
+    if(!column_exists('delivery_orders','stock_processed')){
+      $db->query("ALTER TABLE delivery_orders ADD stock_processed tinyint(1) NOT NULL DEFAULT '1' AFTER scheduled_at");
+    }
+    if(!column_exists('delivery_orders','stock_processed_at')){
+      $db->query("ALTER TABLE delivery_orders ADD stock_processed_at datetime DEFAULT NULL AFTER stock_processed");
+    }
+  }
+
+  ensure_upload_directory(SITE_ROOT.DS.'..'.DS.'uploads'.DS.'defects');
+  $done = true;
+  return true;
+}
+
+function find_all_units(){
+  ensure_warehouse_schema();
+  return find_by_sql("SELECT * FROM units ORDER BY name ASC");
+}
+
+function find_unit_by_id($id){
+  ensure_warehouse_schema();
+  return find_by_id('units',(int)$id);
+}
+
+function create_unit($name, $description=''){
+  global $db;
+  ensure_warehouse_schema();
+  $name = remove_junk($db->escape($name));
+  $description = remove_junk($db->escape($description));
+  if($name === ''){ return false; }
+  $sql = "INSERT INTO units (name,description,created_at) VALUES ('{$name}','{$description}','".make_date()."')";
+  return $db->query($sql) ? $db->insert_id() : false;
+}
+
+function update_unit($id, $name, $description=''){
+  global $db;
+  ensure_warehouse_schema();
+  $id = (int)$id;
+  $name = remove_junk($db->escape($name));
+  $description = remove_junk($db->escape($description));
+  if($id <= 0 || $name === ''){ return false; }
+  $sql = "UPDATE units SET name='{$name}', description='{$description}' WHERE id='{$id}' LIMIT 1";
+  return $db->query($sql);
+}
+
+function unit_is_used($id){
+  global $db;
+  ensure_warehouse_schema();
+  $id = (int)$id;
+  $result = $db->query("SELECT id FROM products WHERE unit_id='{$id}' LIMIT 1");
+  return ($result && $db->num_rows($result) > 0);
+}
+
+function delete_unit_safe($id){
+  ensure_warehouse_schema();
+  if(unit_is_used($id)){ return false; }
+  return delete_by_id('units',(int)$id);
+}
+
+function find_product_defect_summary($product_id){
+  global $db;
+  ensure_warehouse_schema();
+  $product_id = (int)$product_id;
+  $sql = "SELECT COALESCE(SUM(defect_qty),0) AS total_defect, COUNT(id) AS total_report FROM product_defects WHERE product_id='{$product_id}'";
+  $result = $db->query($sql);
+  return $db->fetch_assoc($result);
+}
+
+function record_product_defect($product_id, $client_id, $defect_qty, $note){
+  global $db;
+  ensure_warehouse_schema();
+  $product_id = (int)$product_id;
+  $client_id = (int)$client_id;
+  $defect_qty = (int)$defect_qty;
+  $note = $db->escape($note);
+  $user = current_user();
+  $created_by = $user ? (int)$user['id'] : 0;
+  $client_value = $client_id > 0 ? "'{$client_id}'" : "NULL";
+  $created_by_value = $created_by > 0 ? "'{$created_by}'" : "NULL";
+  if($product_id <= 0 || $defect_qty <= 0){ return false; }
+  $sql = "INSERT INTO product_defects (product_id,client_id,defect_qty,note,created_by,created_at) VALUES ('{$product_id}',{$client_value},'{$defect_qty}','{$note}',{$created_by_value},'".make_date()."')";
+  return $db->query($sql) ? $db->insert_id() : false;
+}
+
+function save_defect_photos($defect_id, $field='defect_photos'){
+  global $db;
+  ensure_warehouse_schema();
+  $saved = 0;
+  $defect_id = (int)$defect_id;
+  if($defect_id <= 0 || empty($_FILES[$field]) || !isset($_FILES[$field]['name']) || !is_array($_FILES[$field]['name'])){
+    return $saved;
+  }
+  $dir = SITE_ROOT.DS.'..'.DS.'uploads'.DS.'defects';
+  ensure_upload_directory($dir);
+  $allowed = array('jpg','jpeg','png','gif');
+  foreach($_FILES[$field]['name'] as $idx => $name){
+    if(empty($name) || $_FILES[$field]['error'][$idx] !== UPLOAD_ERR_OK){ continue; }
+    $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+    if(!in_array($ext, $allowed)){ continue; }
+    $tmp = $_FILES[$field]['tmp_name'][$idx];
+    if(!@getimagesize($tmp)){ continue; }
+    $safe_name = 'defect_'.$defect_id.'_'.date('YmdHis').'_'.randString(5).'.'.$ext;
+    if(move_uploaded_file($tmp, $dir.DS.$safe_name)){
+      $mime = $db->escape($_FILES[$field]['type'][$idx]);
+      $db->query("INSERT INTO product_defect_photos (defect_id,file_name,file_type,created_at) VALUES ('{$defect_id}','".$db->escape($safe_name)."','{$mime}','".make_date()."')");
+      $saved++;
+    }
+  }
+  return $saved;
+}
+
+function find_product_defects($product_id, $client_id = null){
+  global $db;
+  ensure_warehouse_schema();
+  $viewer_client_id = current_client_id();
+  if($viewer_client_id !== null){ $client_id = $viewer_client_id; }
+  $product_id = (int)$product_id;
+  $sql  = "SELECT d.*,p.name AS product_name,u.name AS client_name,actor.name AS created_by_name ";
+  $sql .= "FROM product_defects d ";
+  $sql .= "LEFT JOIN products p ON p.id=d.product_id ";
+  $sql .= "LEFT JOIN users u ON u.id=d.client_id ";
+  $sql .= "LEFT JOIN users actor ON actor.id=d.created_by ";
+  $sql .= "WHERE d.product_id='{$product_id}'";
+  if($client_id !== null){ $sql .= " AND d.client_id='".$db->escape((int)$client_id)."'"; }
+  $sql .= " ORDER BY d.created_at DESC";
+  return find_by_sql($sql);
+}
+
+function find_defect_photos($defect_id){
+  global $db;
+  ensure_warehouse_schema();
+  $defect_id = (int)$defect_id;
+  return find_by_sql("SELECT * FROM product_defect_photos WHERE defect_id='{$defect_id}' ORDER BY id ASC");
+}
+
+function find_latest_product_defect_photo($product_id){
+  global $db;
+  ensure_warehouse_schema();
+  $product_id = (int)$product_id;
+  $sql  = "SELECT pfp.* FROM product_defect_photos pfp ";
+  $sql .= "INNER JOIN product_defects pd ON pd.id = pfp.defect_id ";
+  $sql .= "WHERE pd.product_id='{$product_id}' ";
+  $sql .= "ORDER BY pfp.id DESC LIMIT 1";
+  $result = find_by_sql($sql);
+  return empty($result) ? null : $result[0];
+}
+
+function find_product_defect_photos_by_product($product_id){
+  global $db;
+  ensure_warehouse_schema();
+  $product_id = (int)$product_id;
+  $sql  = "SELECT pfp.* FROM product_defect_photos pfp ";
+  $sql .= "INNER JOIN product_defects pd ON pd.id = pfp.defect_id ";
+  $sql .= "WHERE pd.product_id='{$product_id}' ";
+  $sql .= "ORDER BY pfp.id DESC";
+  return find_by_sql($sql);
+}
+
+function pickup_status_label($status){
+  if($status === 'approved'){ return 'Disetujui'; }
+  if($status === 'rejected'){ return 'Ditolak'; }
+  if($status === 'auto_rejected'){ return 'Ditolak Otomatis'; }
+  if($status === 'completed'){ return 'Selesai'; }
+  return 'Menunggu';
+}
+
+function pickup_status_class($status){
+  if($status === 'approved'){ return 'success'; }
+  if($status === 'rejected' || $status === 'auto_rejected'){ return 'danger'; }
+  if($status === 'completed'){ return 'primary'; }
+  return 'warning';
+}
+
+function find_pickup_requests($client_id = null){
+  global $db;
+  ensure_consignment_tables();
+  ensure_warehouse_schema();
+  $viewer_client_id = current_client_id();
+  if($viewer_client_id !== null){ $client_id = $viewer_client_id; }
+  $sql  = "SELECT r.*,p.name AS product_name,p.quantity AS current_stock,u.name AS client_name,un.name AS unit_name,";
+  $sql .= "d.id AS delivery_id,d.document_no,d.stock_processed ";
+  $sql .= "FROM pickup_requests r ";
+  $sql .= "LEFT JOIN products p ON p.id=r.product_id ";
+  $sql .= "LEFT JOIN users u ON u.id=r.client_id ";
+  $sql .= "LEFT JOIN units un ON un.id=r.unit_id ";
+  $sql .= "LEFT JOIN delivery_orders d ON d.pickup_request_id=r.id";
+  if($client_id !== null){ $sql .= " WHERE r.client_id='".$db->escape((int)$client_id)."'"; }
+  $sql .= " ORDER BY r.created_at DESC, r.id DESC";
+  return find_by_sql($sql);
+}
+
+function find_pickup_request_details($id, $client_id = null){
+  global $db;
+  ensure_consignment_tables();
+  ensure_warehouse_schema();
+  $id = (int)$id;
+  $viewer_client_id = current_client_id();
+  if($viewer_client_id !== null){ $client_id = $viewer_client_id; }
+  $sql  = "SELECT r.*,p.name AS product_name,p.quantity AS current_stock,p.client_id AS product_client_id,u.name AS client_name,un.name AS unit_name,";
+  $sql .= "d.id AS delivery_id,d.document_no,d.stock_processed ";
+  $sql .= "FROM pickup_requests r ";
+  $sql .= "LEFT JOIN products p ON p.id=r.product_id ";
+  $sql .= "LEFT JOIN users u ON u.id=r.client_id ";
+  $sql .= "LEFT JOIN units un ON un.id=r.unit_id ";
+  $sql .= "LEFT JOIN delivery_orders d ON d.pickup_request_id=r.id ";
+  $sql .= "WHERE r.id='{$id}'";
+  if($client_id !== null){ $sql .= " AND r.client_id='".$db->escape((int)$client_id)."'"; }
+  $sql .= " LIMIT 1";
+  $result = find_by_sql($sql);
+  return empty($result) ? null : $result[0];
+}
+
+function create_pickup_request($data = array()){
+  global $db;
+  ensure_warehouse_schema();
+  $client_id = isset($data['client_id']) ? (int)$data['client_id'] : 0;
+  $product_id = isset($data['product_id']) ? (int)$data['product_id'] : 0;
+  $quantity = isset($data['quantity']) ? (int)$data['quantity'] : 0;
+  $pickup_date = !empty($data['pickup_date']) ? $db->escape($data['pickup_date']) : date('Y-m-d');
+  $pickup_time = !empty($data['pickup_time']) ? $db->escape($data['pickup_time']) : '00:00';
+  $driver_name = !empty($data['driver_name']) ? $db->escape($data['driver_name']) : '';
+  $vehicle_no = !empty($data['vehicle_no']) ? $db->escape($data['vehicle_no']) : '';
+  $product = find_product_details($product_id, $client_id);
+  if(!$product || $client_id <= 0 || $quantity <= 0 || $driver_name === '' || $vehicle_no === ''){
+    return false;
+  }
+  $unit_id = !empty($product['unit_id']) ? (int)$product['unit_id'] : 0;
+  $status = 'pending';
+  $admin_note = null;
+  if($quantity > (int)$product['quantity']){
+    $status = 'auto_rejected';
+    $admin_note = 'Jumlah request melebihi stok tersedia. Stok tersedia: '.(int)$product['quantity'].'.';
+  }
+  $request_no = $db->escape(generate_consignment_number('REQ'));
+  $note_value = $admin_note !== null ? "'".$db->escape($admin_note)."'" : "NULL";
+  $unit_value = $unit_id > 0 ? "'{$unit_id}'" : "NULL";
+  $sql  = "INSERT INTO pickup_requests (request_no,client_id,product_id,unit_id,quantity,pickup_date,pickup_time,driver_name,vehicle_no,status,admin_note,created_at) VALUES (";
+  $sql .= "'{$request_no}','{$client_id}','{$product_id}',{$unit_value},'{$quantity}','{$pickup_date}','{$pickup_time}','{$driver_name}','{$vehicle_no}','{$status}',{$note_value},'".make_date()."')";
+  return $db->query($sql) ? $db->insert_id() : false;
+}
+
+function approve_pickup_request($id){
+  global $db;
+  ensure_warehouse_schema();
+  $request = find_pickup_request_details($id);
+  if(!$request || $request['status'] !== 'pending'){ return false; }
+  if((int)$request['quantity'] > (int)$request['current_stock']){
+    return reject_pickup_request($id, 'Jumlah request melebihi stok tersedia saat diproses admin.', true);
+  }
+  $user = current_user();
+  $processed_by = $user ? (int)$user['id'] : 0;
+  $processed_by_value = $processed_by > 0 ? "'{$processed_by}'" : "NULL";
+  $now = make_date();
+  $sql = "UPDATE pickup_requests SET status='approved', processed_by={$processed_by_value}, processed_at='{$now}', admin_note=NULL WHERE id='".(int)$id."' LIMIT 1";
+  if(!$db->query($sql)){ return false; }
+  $existing = find_by_sql("SELECT id FROM delivery_orders WHERE pickup_request_id='".(int)$id."' LIMIT 1");
+  if(!empty($existing)){ return true; }
+  $delivery_id = create_delivery_order(array(
+    'movement_type' => 'out',
+    'client_id' => (int)$request['client_id'],
+    'product_id' => (int)$request['product_id'],
+    'quantity' => (int)$request['quantity'],
+    'document_date' => date('Y-m-d'),
+    'recipient' => $request['client_name'],
+    'driver_name' => $request['driver_name'],
+    'vehicle_no' => $request['vehicle_no'],
+    'reference_type' => 'request_pengambilan',
+    'reference_id' => (int)$id,
+    'pickup_request_id' => (int)$id,
+    'scheduled_at' => $request['pickup_date'].' '.$request['pickup_time'],
+    'stock_processed' => 0,
+    'note' => 'Surat jalan dari request pengambilan barang.'
+  ));
+  return $delivery_id ? true : false;
+}
+
+function reject_pickup_request($id, $reason, $auto=false){
+  global $db;
+  ensure_warehouse_schema();
+  $request = find_pickup_request_details($id);
+  if(!$request || $request['status'] !== 'pending'){ return false; }
+  $reason = $db->escape($reason);
+  if(trim($reason) === ''){ return false; }
+  $user = current_user();
+  $processed_by = $user ? (int)$user['id'] : 0;
+  $processed_by_value = $processed_by > 0 ? "'{$processed_by}'" : "NULL";
+  $status = $auto ? 'auto_rejected' : 'rejected';
+  $now = make_date();
+  $sql = "UPDATE pickup_requests SET status='{$status}', admin_note='{$reason}', processed_by={$processed_by_value}, processed_at='{$now}' WHERE id='".(int)$id."' LIMIT 1";
+  return $db->query($sql);
+}
+
+function process_delivery_order_stock($delivery_id){
+  global $db;
+  ensure_warehouse_schema();
+  $order = find_delivery_order_details($delivery_id);
+  if(!$order){ return false; }
+  if($order['movement_type'] !== 'out' || (int)$order['stock_processed'] === 1){ return true; }
+  $product = find_product_details((int)$order['product_id'], (int)$order['client_id']);
+  if(!$product || (int)$order['quantity'] <= 0 || (int)$order['quantity'] > (int)$product['quantity']){ return false; }
+  $stock_change = update_product_qty((int)$order['quantity'], (int)$order['product_id']);
+  if(!$stock_change){ return false; }
+  $movement_id = record_stock_movement((int)$order['product_id'], 'out', (int)$order['quantity'], $stock_change['before'], $stock_change['after'], array(
+    'client_id' => (int)$order['client_id'],
+    'reference_type' => 'surat_jalan',
+    'reference_id' => (int)$order['id'],
+    'note' => 'Stok keluar saat surat jalan dicetak/diproses'
+  ));
+  if(!$movement_id){
+    increase_product_qty((int)$order['quantity'], (int)$order['product_id']);
+    return false;
+  }
+  $now = make_date();
+  $db->query("UPDATE delivery_orders SET stock_processed='1', stock_processed_at='{$now}' WHERE id='".(int)$order['id']."' LIMIT 1");
+  if(!empty($order['pickup_request_id'])){
+    $db->query("UPDATE pickup_requests SET status='completed' WHERE id='".(int)$order['pickup_request_id']."' AND status='approved' LIMIT 1");
+  }
+  return true;
+}
+
+ensure_warehouse_schema();
 
 ?>

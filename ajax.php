@@ -15,7 +15,7 @@
         $html .= " data-product-id=\"".(int)$product['id']."\" data-product-title=\"".remove_junk($product['name'])."\">";
         $html .= remove_junk($product['name']);
         $html .= !empty($product['client_name']) ? ' - Pelanggan: '.remove_junk($product['client_name']) : ' - Internal';
-        $html .= ' (Stok: '.(int)$product['quantity'].')';
+        $html .= ' (Stok: '.(int)$product['quantity'].' '.(!empty($product['unit_name']) ? remove_junk($product['unit_name']) : '').')';
         $html .= "</li>";
       endforeach;
       } else {
@@ -51,7 +51,7 @@
 
           $html .= "<td id=\"s_name\">".remove_junk($result['name']);
           $html .= !empty($result['client_name']) ? "<br><small class=\"text-muted\">Pelanggan: ".remove_junk($result['client_name'])."</small>" : "<br><small class=\"text-muted\">Stok internal</small>";
-          $html .= "<br><small class=\"text-muted\">Stok tersedia: ".(int)$result['quantity']."</small>";
+          $html .= "<br><small class=\"text-muted\">Stok tersedia: ".(int)$result['quantity']." ".(!empty($result['unit_name']) ? remove_junk($result['unit_name']) : '')."</small>";
           $html .= "<input type=\"hidden\" name=\"s_id\" value=\"{$result['id']}\">";
           $html .= "<input type=\"hidden\" name=\"price\" value=\"0.00\">";
           $html .= "<input type=\"hidden\" name=\"total\" value=\"0.00\"></td>";

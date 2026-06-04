@@ -78,9 +78,17 @@
                   <a href="print_invoice.php?id=<?php echo (int)$billing['id']; ?>" class="btn btn-info btn-xs" title="Cetak Invoice" data-toggle="tooltip">
                     <span class="glyphicon glyphicon-print"></span>
                   </a>
-                  <?php if(!$client_view && $billing['status'] !== 'lunas'): ?>
+                  <?php if(!$client_view): ?>
+                  <a href="edit_billing.php?id=<?php echo (int)$billing['id']; ?>" class="btn btn-warning btn-xs" title="Edit Tagihan" data-toggle="tooltip">
+                    <span class="glyphicon glyphicon-edit"></span>
+                  </a>
+                  <?php if($billing['status'] !== 'lunas'): ?>
                   <a href="mark_billing_paid.php?id=<?php echo (int)$billing['id']; ?>" class="btn btn-success btn-xs" title="Tandai Lunas" data-toggle="tooltip">
                     <span class="glyphicon glyphicon-ok"></span>
+                  </a>
+                  <?php endif; ?>
+                  <a href="delete_billing.php?id=<?php echo (int)$billing['id']; ?>" class="btn btn-danger btn-xs" title="Hapus Tagihan" data-toggle="tooltip">
+                    <span class="glyphicon glyphicon-trash"></span>
                   </a>
                   <?php endif; ?>
                 </div>

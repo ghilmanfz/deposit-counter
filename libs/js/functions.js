@@ -97,4 +97,40 @@ function suggetion() {
             todayHighlight: true,
             autoclose: true
         });
+    initPhotoPreview();
+  });
+
+  function initPhotoPreview(){
+    $(document).on('change', 'input.photo-input', function(){
+      var $container = $(this).closest('.form-group').find('.photo-preview');
+      var files = this.files;
+      var html = '';
+      if(files && files.length){
+        html += '<ul class="list-unstyled" style="margin:0; padding-left:0;">';
+        for(var i = 0; i < files.length; i++){
+          html += '<li><strong>' + files[i].name + '</strong> (' + Math.round(files[i].size/1024) + ' KB)</li>';
+        }
+        html += '</ul>';
+      } else {
+        html = 'Belum ada file dipilih.';
+      }
+      $container.html(html);
+    });
+  }
+
+  // Konfirmasi semua aksi hapus menggunakan modal sistem, bukan browser confirm Chrome.
+  var deleteLinkUrl = null;
+  $(document).on('click', 'a[href*="delete_"]', function(e) {
+    e.preventDefault();
+    deleteLinkUrl = $(this).attr('href');
+    var deleteTitle = $(this).attr('title') || 'Hapus data ini';
+    $('#deleteConfirmModal .modal-title').text(deleteTitle);
+    $('#deleteConfirmModal .modal-body').text('Apakah Anda yakin ingin menghapus data ini?');
+    $('#deleteConfirmModal').modal('show');
+  });
+
+  $('#confirmDeleteBtn').on('click', function() {
+    if(deleteLinkUrl){
+      window.location.href = deleteLinkUrl;
+    }
   });

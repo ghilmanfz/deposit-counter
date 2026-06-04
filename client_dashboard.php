@@ -74,6 +74,7 @@
               <th class="text-center" style="width: 50px;">#</th>
               <th>Barang</th>
               <th class="text-center">Stok</th>
+              <th class="text-center">Satuan</th>
               <th class="text-center">Tanggal Masuk</th>
             </tr>
           </thead>
@@ -83,6 +84,7 @@
               <td class="text-center"><?php echo count_id(); ?></td>
               <td><?php echo remove_junk($product['name']); ?></td>
               <td class="text-center"><?php echo (int)$product['quantity']; ?></td>
+              <td class="text-center"><?php echo !empty($product['unit_name']) ? remove_junk($product['unit_name']) : '-'; ?></td>
               <td class="text-center"><?php echo read_date($product['date']); ?></td>
             </tr>
             <?php endforeach; ?>
@@ -107,6 +109,7 @@
               <th>Barang</th>
               <th class="text-center">Jenis</th>
               <th class="text-center">Jumlah</th>
+              <th class="text-center">Satuan</th>
               <th class="text-center">Waktu</th>
             </tr>
           </thead>
@@ -117,6 +120,7 @@
               <td><?php echo remove_junk($movement['product_name']); ?></td>
               <td class="text-center"><?php echo $movement['movement_type'] === 'in' ? 'Masuk' : ($movement['movement_type'] === 'out' ? 'Keluar' : 'Penyesuaian'); ?></td>
               <td class="text-center"><?php echo (int)$movement['quantity']; ?></td>
+              <td class="text-center"><?php echo !empty($movement['unit_name']) ? remove_junk($movement['unit_name']) : '-'; ?></td>
               <td class="text-center"><?php echo read_date($movement['created_at']); ?></td>
             </tr>
             <?php endforeach; ?>
