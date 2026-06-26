@@ -26,6 +26,26 @@ if(!$product){
        $p_cat   = (int)$_POST['product-categorie'];
        $p_qty   = (int)$db->escape($_POST['product-quantity']);
        $p_unit  = (int)$db->escape($_POST['product-unit']);
+       // Detail surat jalan, grade & ukuran plywood
+       $no_sj    = isset($_POST['product-sj']) ? remove_junk($db->escape($_POST['product-sj'])) : '';
+       $no_batch = isset($_POST['product-batch']) ? remove_junk($db->escape($_POST['product-batch'])) : '';
+       $grade    = isset($_POST['product-grade']) ? remove_junk($db->escape($_POST['product-grade'])) : '';
+       if($grade !== '' && !in_array($grade, product_grades(), true)){ $grade = ''; }
+       $tebal    = (isset($_POST['product-tebal'])   && $_POST['product-tebal']   !== '') ? (float)$_POST['product-tebal']   : null;
+       $lebar    = (isset($_POST['product-lebar'])   && $_POST['product-lebar']   !== '') ? (float)$_POST['product-lebar']   : null;
+       $panjang  = (isset($_POST['product-panjang']) && $_POST['product-panjang'] !== '') ? (float)$_POST['product-panjang'] : null;
+       $m3       = (isset($_POST['product-m3'])      && $_POST['product-m3']      !== '') ? (float)$_POST['product-m3']      : null;
+       $no_sj_value    = $no_sj    !== '' ? "'{$no_sj}'" : "NULL";
+       $no_batch_value = $no_batch !== '' ? "'{$no_batch}'" : "NULL";
+       $grade_value    = $grade    !== '' ? "'{$grade}'" : "NULL";
+       $tebal_value    = $tebal    !== null ? "'".$db->escape($tebal)."'" : "NULL";
+       $lebar_value    = $lebar    !== null ? "'".$db->escape($lebar)."'" : "NULL";
+       $panjang_value  = $panjang  !== null ? "'".$db->escape($panjang)."'" : "NULL";
+       $m3_value       = $m3       !== null ? "'".$db->escape($m3)."'" : "NULL";
+       $sj_scan_new = save_sj_scan('sj_scan_file');
+       $existing_scan = isset($product['sj_scan']) ? $product['sj_scan'] : '';
+       $sj_scan_final = $sj_scan_new !== '' ? $sj_scan_new : $existing_scan;
+       $sj_scan_value = ($sj_scan_final !== '' && $sj_scan_final !== null) ? "'".$db->escape($sj_scan_final)."'" : "NULL";
        $p_buy   = remove_junk($db->escape($_POST['buying-price']));
        $p_sale  = remove_junk($db->escape($_POST['saleing-price']));
        $defect_qty = isset($_POST['defect-quantity']) ? (int)$db->escape($_POST['defect-quantity']) : 0;
@@ -54,7 +74,8 @@ if(!$product){
          }
        }
        $query   = "UPDATE products SET";
-       $query  .=" name ='{$p_name}', quantity ='{$p_qty}',";
+       $query  .=" name ='{$p_name}', no_surat_jalan={$no_sj_value}, no_batch={$no_batch_value}, grade={$grade_value},";
+       $query  .=" tebal={$tebal_value}, lebar={$lebar_value}, panjang={$panjang_value}, m3={$m3_value}, sj_scan={$sj_scan_value}, quantity ='{$p_qty}',";
        $query  .=" buy_price ='{$p_buy}', sale_price ='{$p_sale}', categorie_id ='{$p_cat}',client_id={$client_value},unit_id='{$p_unit}',media_id='{$media_id}'";
        $query  .=" WHERE id ='{$product['id']}'";
        $result = $db->query($query);
@@ -242,10 +263,59 @@ if(!$product){
               </div>
 
               <div class="form-group">
+                <label>Detail Surat Jalan &amp; Grade</label>
+                <div class="row">
+                  <div class="col-md-4">
+                    <input type="text" class="form-control" name="product-sj" value="<?php echo isset($product['no_surat_jalan']) ? remove_junk($product['no_surat_jalan']) : ''; ?>" placeholder="No Surat Jalan">
+                  </div>
+                  <div class="col-md-4">
+                    <input type="text" class="form-control" name="product-batch" value="<?php echo isset($product['no_batch']) ? remove_junk($product['no_batch']) : ''; ?>" placeholder="No Batch">
+                  </div>
+                  <div class="col-md-4">
+                    <select class="form-control" name="product-grade">
+                      <option value="">- Pilih Grade -</option>
+                    <?php foreach (product_grades() as $g): ?>
+                      <option value="<?php echo $g; ?>" <?php if(isset($product['grade']) && $product['grade'] === $g): echo 'selected="selected"'; endif; ?>><?php echo $g; ?></option>
+                    <?php endforeach; ?>
+                    </select>
+                  </div>
+                </div>
+                <div class="row" style="margin-top:10px;">
+                  <div class="col-md-6">
+                    <label>Scan / Foto Surat Jalan (opsional)</label>
+                    <input type="file" class="form-control" name="sj_scan_file" accept="image/*,application/pdf">
+                    <?php if(!empty($product['sj_scan'])): ?>
+                      <small class="text-muted">Saat ini: <a href="uploads/surat_jalan/<?php echo remove_junk($product['sj_scan']); ?>" target="_blank">lihat scan</a>. Unggah baru untuk mengganti.</small>
+                    <?php else: ?>
+                      <small class="text-muted">Format: JPG, PNG, atau PDF.</small>
+                    <?php endif; ?>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Ukuran (mm)</label>
+                <div class="row">
+                  <div class="col-md-3">
+                    <input type="number" step="0.01" min="0" class="form-control" name="product-tebal" value="<?php echo isset($product['tebal']) ? remove_junk($product['tebal']) : ''; ?>" placeholder="Tebal / T">
+                  </div>
+                  <div class="col-md-3">
+                    <input type="number" step="0.01" min="0" class="form-control" name="product-lebar" value="<?php echo isset($product['lebar']) ? remove_junk($product['lebar']) : ''; ?>" placeholder="Lebar / W">
+                  </div>
+                  <div class="col-md-3">
+                    <input type="number" step="0.01" min="0" class="form-control" name="product-panjang" value="<?php echo isset($product['panjang']) ? remove_junk($product['panjang']) : ''; ?>" placeholder="Panjang / L">
+                  </div>
+                  <div class="col-md-3">
+                    <input type="number" step="0.0001" min="0" class="form-control" name="product-m3" value="<?php echo isset($product['m3']) ? remove_junk($product['m3']) : ''; ?>" placeholder="M3 (opsional)">
+                  </div>
+                </div>
+                <small class="text-muted">Isi angka polos (1220, bukan 1.220). M3 boleh kosong.</small>
+              </div>
+
+              <div class="form-group">
                <div class="row">
                  <div class="col-md-4">
                   <div class="form-group">
-                    <label for="qty">Jumlah Stok</label>
+                    <label for="qty">Jumlah Lembar (PC) / Crate</label>
                     <div class="input-group">
                       <span class="input-group-addon">
                        <i class="glyphicon glyphicon-shopping-cart"></i>

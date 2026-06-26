@@ -301,6 +301,7 @@ function tableExists($table){
      }
 
      $sql  =" SELECT p.id,p.name,p.quantity,p.buy_price,p.sale_price,p.client_id,p.unit_id,p.media_id,p.date,";
+     $sql .= "p.no_surat_jalan,p.no_batch,p.grade,p.tebal,p.lebar,p.panjang,p.m3,p.sj_scan,";
      $sql .= "(SELECT COALESCE(SUM(quantity),0) FROM stock_movements sm WHERE sm.product_id=p.id AND sm.movement_type='out') AS total_out,";
      $sql .= "(SELECT MAX(created_at) FROM stock_movements sm WHERE sm.product_id=p.id AND sm.movement_type='out') AS last_out_date,";
      $sql .= " c.name AS categorie,m.file_name AS image,u.name AS client_name,un.name AS unit_name";
@@ -808,7 +809,7 @@ function tableExists($table){
       $client_id = $viewer_client_id;
     }
 
-    $sql  = "SELECT d.*,u.name AS client_name,u.username AS client_username,p.name AS product_name,un.name AS unit_name,";
+    $sql  = "SELECT d.*,u.name AS client_name,u.username AS client_username,p.name AS product_name,p.grade,p.no_batch,p.tebal,p.lebar,p.panjang,un.name AS unit_name,";
     $sql .= "actor.name AS created_by_name ";
     $sql .= "FROM delivery_orders d ";
     $sql .= "LEFT JOIN users u ON u.id = d.client_id ";
@@ -1083,9 +1084,147 @@ function ensure_warehouse_schema($force = false){
     }
   }
 
+  // Kolom titipan plywood pada products: no surat jalan, no batch, grade, ukuran (T/W/L mm), volume m3
+  if(tableExists('products')){
+    $plywood_columns = array(
+      'no_surat_jalan' => "ADD no_surat_jalan varchar(100) DEFAULT NULL AFTER name",
+      'no_batch'       => "ADD no_batch varchar(100) DEFAULT NULL AFTER no_surat_jalan",
+      'grade'          => "ADD grade varchar(20) DEFAULT NULL AFTER no_batch",
+      'tebal'          => "ADD tebal decimal(10,2) DEFAULT NULL AFTER grade",
+      'lebar'          => "ADD lebar decimal(10,2) DEFAULT NULL AFTER tebal",
+      'panjang'        => "ADD panjang decimal(10,2) DEFAULT NULL AFTER lebar",
+      'm3'             => "ADD m3 decimal(12,4) DEFAULT NULL AFTER panjang",
+      'sj_scan'        => "ADD sj_scan varchar(255) DEFAULT NULL AFTER m3"
+    );
+    foreach($plywood_columns as $col => $ddl){
+      if(!column_exists('products',$col)){
+        $db->query("ALTER TABLE products ".$ddl);
+      }
+    }
+    // quantity = jumlah lembar (PC) isi crate; konversi sekali dari varchar lama ke int
+    $qty_col = $db->query("SHOW COLUMNS FROM products LIKE 'quantity'");
+    if($qty_col && ($qty_meta = $db->fetch_assoc($qty_col)) && stripos($qty_meta['Type'],'int') === false){
+      $db->query("ALTER TABLE products MODIFY quantity int(11) NOT NULL DEFAULT 0");
+    }
+  }
+
+  // Pengaturan tarif penyimpanan: global (app_settings) + override per-client (users.storage_rate)
+  $db->query("CREATE TABLE IF NOT EXISTS app_settings (
+    setting_key varchar(60) NOT NULL,
+    setting_value varchar(255) DEFAULT NULL,
+    PRIMARY KEY (setting_key)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3");
+  $db->query("INSERT IGNORE INTO app_settings (setting_key,setting_value) VALUES ('storage_rate_per_crate_month','50000')");
+
+  if(tableExists('users') && !column_exists('users','storage_rate')){
+    $db->query("ALTER TABLE users ADD storage_rate decimal(25,2) DEFAULT NULL");
+  }
+
   ensure_upload_directory(SITE_ROOT.DS.'..'.DS.'uploads'.DS.'defects');
   $done = true;
   return true;
+}
+
+/*--------------------------------------------------------------*/
+/* Grade kualitas plywood, urut dari terbaik ke terendah
+/*--------------------------------------------------------------*/
+function product_grades(){
+  return array('UT','UT-1','UT-2','RIJEK');
+}
+
+function grade_rank($grade){
+  $idx = array_search($grade, product_grades(), true);
+  return $idx === false ? 999 : (int)$idx;
+}
+
+/*--------------------------------------------------------------*/
+/* Format satu angka ukuran (mm) ke notasi Indonesia (1.220 / 3,6)
+/*--------------------------------------------------------------*/
+function format_dimension($value){
+  if($value === null || $value === ''){ return null; }
+  $formatted = number_format((float)$value, 2, ',', '.');
+  // buang nol desimal yang tidak perlu: 1.220,00 -> 1.220 ; 3,60 -> 3,6
+  if(strpos($formatted, ',') !== false){
+    $formatted = rtrim(rtrim($formatted, '0'), ',');
+  }
+  return $formatted;
+}
+
+/*--------------------------------------------------------------*/
+/* Format ukuran plywood gabungan: T x W x L mm
+/*--------------------------------------------------------------*/
+function format_product_size($product){
+  $t = isset($product['tebal']) ? $product['tebal'] : null;
+  $w = isset($product['lebar']) ? $product['lebar'] : null;
+  $l = isset($product['panjang']) ? $product['panjang'] : null;
+  if(($t === null || $t === '') && ($w === null || $w === '') && ($l === null || $l === '')){
+    return '-';
+  }
+  $parts = array(
+    format_dimension($t) !== null ? format_dimension($t) : '-',
+    format_dimension($w) !== null ? format_dimension($w) : '-',
+    format_dimension($l) !== null ? format_dimension($l) : '-'
+  );
+  return implode(' &times; ', $parts).' mm';
+}
+
+/*--------------------------------------------------------------*/
+/* Pengaturan aplikasi (key/value) untuk tarif penyimpanan
+/*--------------------------------------------------------------*/
+function get_setting($key, $default = null){
+  global $db;
+  ensure_warehouse_schema();
+  $key = $db->escape($key);
+  $res = $db->query("SELECT setting_value FROM app_settings WHERE setting_key='{$key}' LIMIT 1");
+  if($res && $db->num_rows($res) > 0){
+    $row = $db->fetch_assoc($res);
+    return $row['setting_value'];
+  }
+  return $default;
+}
+
+function set_setting($key, $value){
+  global $db;
+  ensure_warehouse_schema();
+  $key = $db->escape($key);
+  $value = $db->escape($value);
+  return $db->query("INSERT INTO app_settings (setting_key,setting_value) VALUES ('{$key}','{$value}') ON DUPLICATE KEY UPDATE setting_value='{$value}'");
+}
+
+function storage_rate_global(){
+  return (float)get_setting('storage_rate_per_crate_month', 50000);
+}
+
+/* Tarif berlaku untuk client: override per-client jika ada, jika tidak pakai global */
+function client_storage_rate($client_id){
+  $client_id = (int)$client_id;
+  if($client_id > 0){
+    $user = find_by_id('users', $client_id);
+    if($user && isset($user['storage_rate']) && $user['storage_rate'] !== null && $user['storage_rate'] !== '' && (float)$user['storage_rate'] > 0){
+      return (float)$user['storage_rate'];
+    }
+  }
+  return storage_rate_global();
+}
+
+/*--------------------------------------------------------------*/
+/* Biaya penyimpanan prorata harian: (tarif/bulan / 30) x hari x crate
+/* Minimal dihitung 1 hari.
+/*--------------------------------------------------------------*/
+function storage_days($masuk_date, $keluar_date = null){
+  if(empty($masuk_date)){ return 1; }
+  $masuk = strtotime(date('Y-m-d', strtotime($masuk_date)));
+  $keluar = $keluar_date ? strtotime(date('Y-m-d', strtotime($keluar_date))) : strtotime(date('Y-m-d'));
+  $days = (int)floor(($keluar - $masuk) / 86400);
+  return $days < 1 ? 1 : $days;
+}
+
+function calculate_storage_fee($masuk_date, $keluar_date, $crates, $client_id){
+  $rate = client_storage_rate($client_id);
+  $days = storage_days($masuk_date, $keluar_date);
+  $crates = (int)$crates < 1 ? 1 : (int)$crates;
+  $fee = round(($rate / 30) * $days * $crates);
+  return array('rate' => $rate, 'days' => $days, 'crates' => $crates, 'fee' => $fee);
 }
 
 function find_all_units(){
@@ -1183,6 +1322,25 @@ function save_defect_photos($defect_id, $field='defect_photos'){
     }
   }
   return $saved;
+}
+
+/*--------------------------------------------------------------*/
+/* Simpan scan/foto surat jalan (jpg/png/pdf) -> uploads/surat_jalan
+/*--------------------------------------------------------------*/
+function save_sj_scan($field = 'sj_scan_file'){
+  if(empty($_FILES[$field]) || !isset($_FILES[$field]['name']) || $_FILES[$field]['name'] === '' || $_FILES[$field]['error'] !== UPLOAD_ERR_OK){
+    return '';
+  }
+  $dir = SITE_ROOT.DS.'..'.DS.'uploads'.DS.'surat_jalan';
+  ensure_upload_directory($dir);
+  $allowed = array('jpg','jpeg','png','pdf');
+  $ext = strtolower(pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION));
+  if(!in_array($ext, $allowed)){ return ''; }
+  $safe_name = 'sj_'.date('YmdHis').'_'.randString(5).'.'.$ext;
+  if(move_uploaded_file($_FILES[$field]['tmp_name'], $dir.DS.$safe_name)){
+    return $safe_name;
+  }
+  return '';
 }
 
 function find_product_defects($product_id, $client_id = null){

@@ -24,7 +24,9 @@
        $username = remove_junk($db->escape($_POST['username']));
           $level = (int)$db->escape($_POST['level']);
        $status   = remove_junk($db->escape($_POST['status']));
-            $sql = "UPDATE users SET name ='{$name}', username ='{$username}',user_level='{$level}',status='{$status}' WHERE id='{$db->escape($id)}'";
+       $storage_rate = (isset($_POST['storage_rate']) && $_POST['storage_rate'] !== '') ? (float)$_POST['storage_rate'] : null;
+       $storage_rate_value = $storage_rate !== null ? "'".$db->escape($storage_rate)."'" : "NULL";
+            $sql = "UPDATE users SET name ='{$name}', username ='{$username}',user_level='{$level}',status='{$status}',storage_rate={$storage_rate_value} WHERE id='{$db->escape($id)}'";
          $result = $db->query($sql);
           if($result && $db->affected_rows() === 1){
             $session->msg('s',"Akun berhasil diupdate ");
@@ -99,6 +101,10 @@ if(isset($_POST['update-pass'])) {
                   <option <?php if($e_user['status'] === '1') echo 'selected="selected"';?>value="1">Aktif</option>
                   <option <?php if($e_user['status'] === '0') echo 'selected="selected"';?> value="0">Nonaktif</option>
                 </select>
+            </div>
+            <div class="form-group">
+              <label for="storage_rate">Tarif Penyimpanan / Crate / Bulan (khusus client, opsional)</label>
+              <input type="number" min="0" step="1000" class="form-control" name="storage_rate" value="<?php echo (isset($e_user['storage_rate']) && $e_user['storage_rate'] !== null && $e_user['storage_rate'] !== '') ? remove_junk($e_user['storage_rate']) : ''; ?>" placeholder="Kosongkan = pakai tarif global">
             </div>
             <div class="form-group clearfix">
                     <button type="submit" name="update" class="btn btn-info">Update</button>

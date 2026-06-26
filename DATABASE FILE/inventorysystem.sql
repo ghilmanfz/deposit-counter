@@ -176,7 +176,15 @@ CREATE TABLE `pickup_requests` (
 CREATE TABLE `products` (
   `id` int(10) UNSIGNED NOT NULL,
   `name` varchar(255) NOT NULL,
-  `quantity` varchar(50) DEFAULT NULL,
+  `no_surat_jalan` varchar(100) DEFAULT NULL,
+  `no_batch` varchar(100) DEFAULT NULL,
+  `grade` varchar(20) DEFAULT NULL,
+  `tebal` decimal(10,2) DEFAULT NULL,
+  `lebar` decimal(10,2) DEFAULT NULL,
+  `panjang` decimal(10,2) DEFAULT NULL,
+  `m3` decimal(12,4) DEFAULT NULL,
+  `sj_scan` varchar(255) DEFAULT NULL,
+  `quantity` int(11) NOT NULL DEFAULT 0,
   `buy_price` decimal(25,2) DEFAULT NULL,
   `sale_price` decimal(25,2) NOT NULL,
   `categorie_id` int(10) UNSIGNED NOT NULL,
@@ -321,7 +329,8 @@ CREATE TABLE `users` (
   `user_level` int(11) NOT NULL,
   `image` varchar(255) DEFAULT 'no_image.jpg',
   `status` int(11) NOT NULL,
-  `last_login` datetime DEFAULT NULL
+  `last_login` datetime DEFAULT NULL,
+  `storage_rate` decimal(25,2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --

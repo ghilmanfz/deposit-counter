@@ -6,6 +6,16 @@
   $user = current_user();
   $client_view = is_client_user($user);
   $movements = $client_view ? find_stock_movements(null, $user['id']) : find_stock_movements();
+
+  $filter_product = isset($_GET['product_id']) ? (int)$_GET['product_id'] : 0;
+  $filter_name = '';
+  if($filter_product > 0){
+    $movements = array_values(array_filter($movements, function($m) use ($filter_product){
+      return (int)$m['product_id'] === $filter_product;
+    }));
+    $fp = find_by_id('products', $filter_product);
+    if($fp){ $filter_name = $fp['name']; }
+  }
   $msg = $session->msg();
 ?>
 <?php include_once('layouts/header.php'); ?>
@@ -22,8 +32,11 @@
       <div class="panel-heading">
         <strong>
           <span class="glyphicon glyphicon-transfer"></span>
-          <span><?php echo $client_view ? 'Riwayat Stok Saya' : 'Riwayat Stok Gudang'; ?></span>
+          <span><?php echo $client_view ? 'Riwayat Stok Saya' : 'Riwayat Stok Gudang'; ?><?php echo $filter_name !== '' ? ': '.remove_junk($filter_name) : ''; ?></span>
         </strong>
+        <?php if($filter_product > 0): ?>
+          <a href="stock_history.php" class="btn btn-default btn-xs pull-right">Lihat Semua</a>
+        <?php endif; ?>
       </div>
       <div class="panel-body">
         <table class="table table-bordered table-striped">

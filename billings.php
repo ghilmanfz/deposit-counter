@@ -6,6 +6,15 @@
 
   $user = current_user();
   $client_view = is_client_user($user);
+
+  if(!$client_view && isset($_POST['save_storage_rate'])){
+    $rate = (float)$_POST['storage_rate'];
+    if($rate < 0){ $rate = 0; }
+    set_setting('storage_rate_per_crate_month', $rate);
+    $session->msg('s','Tarif penyimpanan global diperbarui.');
+    redirect('billings.php', false);
+  }
+
   $billings = find_all_billings($client_view ? (int)$user['id'] : null);
   $msg = $session->msg();
 ?>
@@ -16,6 +25,29 @@
     <?php echo display_msg($msg); ?>
   </div>
 </div>
+
+<?php if(!$client_view): ?>
+<div class="row">
+  <div class="col-md-12">
+    <div class="panel panel-info">
+      <div class="panel-heading"><strong><span class="glyphicon glyphicon-cog"></span> Tarif Penyimpanan Global</strong></div>
+      <div class="panel-body">
+        <form method="post" action="billings.php" class="form-inline">
+          <div class="form-group">
+            <label>Tarif per Crate / Bulan</label>
+            <div class="input-group">
+              <span class="input-group-addon">Rp</span>
+              <input type="number" min="0" step="1000" class="form-control" name="storage_rate" value="<?php echo (int)storage_rate_global(); ?>">
+            </div>
+          </div>
+          <button type="submit" name="save_storage_rate" class="btn btn-info">Simpan Tarif</button>
+          <span class="text-muted" style="margin-left:10px;">Dihitung prorata harian: tarif &divide; 30 &times; jumlah hari titip &times; jumlah crate. Override per client di menu Edit User.</span>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
 
 <div class="row">
   <div class="col-md-12">

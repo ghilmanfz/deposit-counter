@@ -61,8 +61,10 @@
           $html  .= "<td>";
           $html  .= "<input type=\"date\" class=\"form-control datePicker\" name=\"date\" data-date data-date-format=\"yyyy-mm-dd\" value=\"".date('Y-m-d')."\">";
           $html  .= "</td>";
+          $storage = calculate_storage_fee($result['date'], date('Y-m-d'), 1, (int)$result['client_id']);
           $html  .= "<td>";
-          $html  .= "<input type=\"number\" min=\"0\" step=\"1000\" class=\"form-control\" name=\"billing_amount\" value=\"0\">";
+          $html  .= "<input type=\"number\" min=\"0\" step=\"1000\" class=\"form-control\" name=\"billing_amount\" value=\"".(int)$storage['fee']."\">";
+          $html  .= "<small class=\"text-muted\">Penyimpanan ".$storage['days']." hari, tarif ".format_rupiah($storage['rate'])."/crate/bln</small>";
           $html  .= "</td>";
           $html  .= "<td>";
           $html  .= "<input type=\"date\" class=\"form-control\" name=\"due_date\" value=\"".date('Y-m-d', strtotime('+7 days'))."\">";

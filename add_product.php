@@ -18,6 +18,24 @@
      $p_cat   = remove_junk($db->escape($_POST['product-categorie']));
      $p_qty   = (int)$db->escape($_POST['product-quantity']);
      $p_unit  = (int)$db->escape($_POST['product-unit']);
+     // Detail surat jalan, grade & ukuran plywood
+     $no_sj    = isset($_POST['product-sj']) ? remove_junk($db->escape($_POST['product-sj'])) : '';
+     $no_batch = isset($_POST['product-batch']) ? remove_junk($db->escape($_POST['product-batch'])) : '';
+     $grade    = isset($_POST['product-grade']) ? remove_junk($db->escape($_POST['product-grade'])) : '';
+     if($grade !== '' && !in_array($grade, product_grades(), true)){ $grade = ''; }
+     $tebal    = (isset($_POST['product-tebal'])   && $_POST['product-tebal']   !== '') ? (float)$_POST['product-tebal']   : null;
+     $lebar    = (isset($_POST['product-lebar'])   && $_POST['product-lebar']   !== '') ? (float)$_POST['product-lebar']   : null;
+     $panjang  = (isset($_POST['product-panjang']) && $_POST['product-panjang'] !== '') ? (float)$_POST['product-panjang'] : null;
+     $m3       = (isset($_POST['product-m3'])      && $_POST['product-m3']      !== '') ? (float)$_POST['product-m3']      : null;
+     $no_sj_value    = $no_sj    !== '' ? "'{$no_sj}'" : "NULL";
+     $no_batch_value = $no_batch !== '' ? "'{$no_batch}'" : "NULL";
+     $grade_value    = $grade    !== '' ? "'{$grade}'" : "NULL";
+     $tebal_value    = $tebal    !== null ? "'".$db->escape($tebal)."'" : "NULL";
+     $lebar_value    = $lebar    !== null ? "'".$db->escape($lebar)."'" : "NULL";
+     $panjang_value  = $panjang  !== null ? "'".$db->escape($panjang)."'" : "NULL";
+     $m3_value       = $m3       !== null ? "'".$db->escape($m3)."'" : "NULL";
+     $sj_scan = save_sj_scan('sj_scan_file');
+     $sj_scan_value = $sj_scan !== '' ? "'".$db->escape($sj_scan)."'" : "NULL";
      $defect_qty = isset($_POST['defect-quantity']) ? (int)$db->escape($_POST['defect-quantity']) : 0;
      $defect_note = isset($_POST['defect-note']) ? remove_junk($db->escape($_POST['defect-note'])) : '';
      $p_buy   = '0.00';
@@ -47,9 +65,9 @@
      }
      $date    = make_date();
      $query  = "INSERT INTO products (";
-     $query .=" name,quantity,buy_price,sale_price,categorie_id,client_id,unit_id,media_id,date";
+     $query .=" name,no_surat_jalan,no_batch,grade,tebal,lebar,panjang,m3,sj_scan,quantity,buy_price,sale_price,categorie_id,client_id,unit_id,media_id,date";
      $query .=") VALUES (";
-     $query .=" '{$p_name}', '{$p_qty}', '{$p_buy}', '{$p_sale}', '{$p_cat}', {$client_value}, '{$p_unit}', '{$media_id}', '{$date}'";
+     $query .=" '{$p_name}', {$no_sj_value}, {$no_batch_value}, {$grade_value}, {$tebal_value}, {$lebar_value}, {$panjang_value}, {$m3_value}, {$sj_scan_value}, '{$p_qty}', '{$p_buy}', '{$p_sale}', '{$p_cat}', {$client_value}, '{$p_unit}', '{$media_id}', '{$date}'";
      $query .=")";
      if($db->query($query)){
        $product_id = $db->insert_id();
@@ -196,14 +214,61 @@
               </div>
 
               <div class="form-group">
+                <label>Detail Surat Jalan &amp; Grade</label>
+                <div class="row">
+                  <div class="col-md-4">
+                    <input type="text" class="form-control" name="product-sj" placeholder="No Surat Jalan (cth: 2160006751)">
+                  </div>
+                  <div class="col-md-4">
+                    <input type="text" class="form-control" name="product-batch" placeholder="No Batch (cth: 0002687264)">
+                  </div>
+                  <div class="col-md-4">
+                    <select class="form-control" name="product-grade">
+                      <option value="">- Pilih Grade -</option>
+                    <?php foreach (product_grades() as $g): ?>
+                      <option value="<?php echo $g; ?>"><?php echo $g; ?></option>
+                    <?php endforeach; ?>
+                    </select>
+                  </div>
+                </div>
+                <div class="row" style="margin-top:10px;">
+                  <div class="col-md-6">
+                    <label>Scan / Foto Surat Jalan (opsional)</label>
+                    <input type="file" class="form-control" name="sj_scan_file" accept="image/*,application/pdf">
+                    <small class="text-muted">Format: JPG, PNG, atau PDF.</small>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Ukuran (mm)</label>
+                <div class="row">
+                  <div class="col-md-3">
+                    <input type="number" step="0.01" min="0" class="form-control" name="product-tebal" placeholder="Tebal / T">
+                  </div>
+                  <div class="col-md-3">
+                    <input type="number" step="0.01" min="0" class="form-control" name="product-lebar" placeholder="Lebar / W">
+                  </div>
+                  <div class="col-md-3">
+                    <input type="number" step="0.01" min="0" class="form-control" name="product-panjang" placeholder="Panjang / L">
+                  </div>
+                  <div class="col-md-3">
+                    <input type="number" step="0.0001" min="0" class="form-control" name="product-m3" placeholder="M3 (opsional)">
+                  </div>
+                </div>
+                <small class="text-muted">Isi angka polos: <strong>1220</strong> bukan 1.220. Contoh plywood: T 3,6 &times; W 1220 &times; L 2440 mm. M3 boleh kosong.</small>
+              </div>
+
+              <div class="form-group">
                <div class="row">
                  <div class="col-md-4">
+                   <label>Jumlah Lembar (PC) per Crate</label>
                    <div class="input-group">
                      <span class="input-group-addon">
                       <i class="glyphicon glyphicon-shopping-cart"></i>
                      </span>
-                     <input type="number" class="form-control" name="product-quantity" placeholder="Jumlah Stok Awal">
+                     <input type="number" min="0" class="form-control" name="product-quantity" placeholder="cth: 330">
                   </div>
+                  <small class="text-muted">1 baris = 1 crate. Pilih satuan <strong>krat</strong> di atas.</small>
                  </div>
                </div>
               </div>
