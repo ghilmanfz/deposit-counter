@@ -2,225 +2,130 @@
   $page_title = 'Dashboard Admin';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
-   page_require_level(1);
+  page_require_level(1);
 ?>
 <?php
  $c_categorie     = count_by_id('categories');
  $c_product       = count_by_id('products');
- $c_sale          = count_by_id('withdrawals');
+ $c_withdrawal    = count_by_id('withdrawals');
  $c_user          = count_by_id('users');
- $products_sold   = find_higest_saleing_product('10');
- $recent_products = find_recent_product_added('5');
- $recent_sales    = find_recent_sale_added('5');
- $inventory_rows  = join_product_table();
- $pickup_requests = find_pickup_requests();
+ $user            = current_user();
+ $name            = isset($user['name']) ? remove_junk(ucfirst($user['name'])) : 'User';
 ?>
 <?php include_once('layouts/header.php'); ?>
 
 <div class="row">
-   <div class="col-md-6">
+   <div class="col-md-12">
      <?php echo display_msg($msg); ?>
    </div>
 </div>
-  <div class="row">
-    <a href="users.php" style="color:black;">
-		<div class="col-md-3">
-       <div class="panel panel-box clearfix">
-         <div class="panel-icon pull-left bg-secondary1">
+
+<!-- Welcome Banner -->
+<div class="welcome-banner">
+  <h1>Selamat Datang, <?php echo $name; ?> 👋</h1>
+  <p>Anda masuk sebagai <span>Super Admin</span>. Semoga harimu berkah.</p>
+</div>
+
+<!-- Horizontal Stat Cards -->
+<div class="row">
+  <div class="col-md-3 col-sm-6">
+    <a href="users.php">
+      <div class="stat-card-horizontal">
+        <div class="stat-card-icon blue">
           <i class="glyphicon glyphicon-user"></i>
         </div>
-        <div class="panel-value pull-right">
-          <h2 class="margin-top"> <?php  echo $c_user['total']; ?> </h2>
-          <p class="text-muted">User</p>
+        <div class="stat-card-info">
+          <h2><?php echo $c_user['total']; ?></h2>
+          <p>Personil Aktif</p>
         </div>
-       </div>
-    </div>
-	</a>
-	
-	<a href="categorie.php" style="color:black;">
-    <div class="col-md-3">
-       <div class="panel panel-box clearfix">
-         <div class="panel-icon pull-left bg-red">
+      </div>
+    </a>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <a href="categorie.php">
+      <div class="stat-card-horizontal">
+        <div class="stat-card-icon green">
+          <i class="glyphicon glyphicon-indent-left"></i>
+        </div>
+        <div class="stat-card-info">
+          <h2><?php echo $c_categorie['total']; ?></h2>
+          <p>Kategori Aktif</p>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <a href="product.php">
+      <div class="stat-card-horizontal">
+        <div class="stat-card-icon yellow">
           <i class="glyphicon glyphicon-th-large"></i>
         </div>
-        <div class="panel-value pull-right">
-          <h2 class="margin-top"> <?php  echo $c_categorie['total']; ?> </h2>
-          <p class="text-muted">Kategori</p>
+        <div class="stat-card-info">
+          <h2><?php echo $c_product['total']; ?></h2>
+          <p>Barang Titipan</p>
         </div>
-       </div>
-    </div>
-	</a>
-	
-	<a href="product.php" style="color:black;">
-    <div class="col-md-3">
-       <div class="panel panel-box clearfix">
-         <div class="panel-icon pull-left bg-blue2">
-          <i class="glyphicon glyphicon-shopping-cart"></i>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <a href="withdrawals.php">
+      <div class="stat-card-horizontal">
+        <div class="stat-card-icon purple">
+          <i class="glyphicon glyphicon-transfer"></i>
         </div>
-        <div class="panel-value pull-right">
-          <h2 class="margin-top"> <?php  echo $c_product['total']; ?> </h2>
-          <p class="text-muted">Barang Titipan</p>
+        <div class="stat-card-info">
+          <h2><?php echo $c_withdrawal['total']; ?></h2>
+          <p>Pengambilan</p>
         </div>
-       </div>
-    </div>
-	</a>
-	
-	<a href="withdrawals.php" style="color:black;">
-    <div class="col-md-3">
-       <div class="panel panel-box clearfix">
-         <div class="panel-icon pull-left bg-green">
-          <i class="glyphicon glyphicon-usd"></i>
-        </div>
-        <div class="panel-value pull-right">
-          <h2 class="margin-top"> <?php  echo $c_sale['total']; ?></h2>
-          <p class="text-muted">Pengambilan</p>
-        </div>
-       </div>
-    </div>
-	</a>
+      </div>
+    </a>
+  </div>
 </div>
+
+<!-- Ringkasan Pribadi & Pengumuman -->
+<div class="row">
+  <div class="col-md-6">
+    <div class="custom-panel">
+      <div class="custom-panel-header">
+        <h3 class="custom-panel-title"><i class="glyphicon glyphicon-user"></i> Ringkasan Pribadi</h3>
+      </div>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:25px; margin-bottom:25px;">
+        <h5 style="color:#64748b; font-size:12px; font-weight:700; margin:0 0 8px; text-transform:uppercase;">STATUS OPERASIONAL HARI INI</h5>
+        <p style="color:#0b1c3c; font-size:16px; font-weight:600; margin:0 0 15px;">Sistem aktif & siap mencatat mutasi barang titipan.</p>
+        <a href="add_product.php" style="color:#10b981; font-weight:700; font-size:15px;">Tambah barang titipan sekarang &rarr;</a>
+      </div>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:25px;">
+        <h5 style="color:#64748b; font-size:12px; font-weight:700; margin:0 0 8px; text-transform:uppercase;">PENGELOLAAN SISTEM TERAKHIR</h5>
+        <p style="color:#0b1c3c; font-size:18px; font-weight:800; margin:0 0 4px;">Log Transaksi Stabil</p>
+        <p style="color:#64748b; font-size:13px; margin:0;">Integritas basis data terjaga 100%.</p>
+      </div>
+    </div>
+  </div>
   
-  <div class="row">
-   <div class="col-md-4">
-     <div class="panel panel-default">
-       <div class="panel-heading">
-         <strong>
-           <span class="glyphicon glyphicon-th"></span>
-           <span>Barang Paling Sering Diambil</span>
-         </strong>
-       </div>
-       <div class="panel-body">
-         <table class="table table-striped table-bordered table-condensed">
-          <thead>
-           <tr>
-             <th>Barang</th>
-             <th>Total Transaksi</th>
-             <th>Total Jumlah</th>
-           <tr>
-          </thead>
-          <tbody>
-            <?php foreach ($products_sold as  $product_sold): ?>
-              <tr>
-                <td><?php echo remove_junk(first_character($product_sold['name'])); ?></td>
-                <td><?php echo (int)$product_sold['totalSold']; ?></td>
-                <td><?php echo (int)$product_sold['totalQty']; ?></td>
-              </tr>
-            <?php endforeach; ?>
-          <tbody>
-         </table>
-       </div>
-     </div>
-   </div>
-   <div class="col-md-4">
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <strong>
-            <span class="glyphicon glyphicon-th"></span>
-            <span>Pengambilan Terbaru</span>
-          </strong>
-        </div>
-        <div class="panel-body">
-          <table class="table table-striped table-bordered table-condensed">
-       <thead>
-         <tr>
-           <th class="text-center" style="width: 50px;">#</th>
-           <th>Nama Barang</th>
-           <th>Tanggal</th>
-           <th>Jumlah</th>
-         </tr>
-       </thead>
-       <tbody>
-         <?php foreach ($recent_sales as  $recent_sale): ?>
-         <tr>
-           <td class="text-center"><?php echo count_id();?></td>
-           <td>
-            <a href="edit_withdrawal.php?id=<?php echo (int)$recent_sale['id']; ?>">
-             <?php echo remove_junk(first_character($recent_sale['name'])); ?>
-           </a>
-           </td>
-           <td><?php echo remove_junk(ucfirst($recent_sale['date'])); ?></td>
-           <td><?php echo (int)$recent_sale['qty']; ?></td>
-        </tr>
-
-       <?php endforeach; ?>
-       </tbody>
-     </table>
-    </div>
-   </div>
-  </div>
-  <div class="col-md-4">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <strong>
-          <span class="glyphicon glyphicon-th"></span>
-          <span>Barang Titipan Terbaru</span>
-        </strong>
+  <div class="col-md-6">
+    <div class="custom-panel">
+      <div class="custom-panel-header">
+        <h3 class="custom-panel-title"><i class="glyphicon glyphicon-bullhorn"></i> Pengumuman</h3>
+        <a href="#" class="custom-panel-link">Semua</a>
       </div>
-      <div class="panel-body">
-
-        <div class="list-group">
-      <?php foreach ($recent_products as  $recent_product): ?>
-            <a class="list-group-item clearfix" href="edit_product.php?id=<?php echo    (int)$recent_product['id'];?>">
-                <h4 class="list-group-item-heading">
-                 <?php if($recent_product['media_id'] === '0'): ?>
-                    <img class="img-avatar img-circle" src="uploads/products/no_image.png" alt="">
-                  <?php else: ?>
-                  <img class="img-avatar img-circle" src="uploads/products/<?php echo $recent_product['image'];?>" alt="" />
-                <?php endif;?>
-                <?php echo remove_junk(first_character($recent_product['name']));?>
-                  <span class="label label-warning pull-right">
-                 Stok: <?php echo (int)$recent_product['quantity']; ?>
-                  </span>
-                </h4>
-                <span class="list-group-item-text pull-right">
-                <?php echo remove_junk(first_character($recent_product['categorie'])); ?>
-              </span>
-          </a>
-      <?php endforeach; ?>
+      <div style="border-bottom:1px solid #e2e8f0; padding-bottom:20px; margin-bottom:20px;">
+        <h4 style="color:#0b1c3c; font-size:16px; font-weight:700; margin:0 0 6px;">Pendaftaran Klien Baru Gelombang II Dibuka</h4>
+        <p style="color:#64748b; font-size:14px; margin:0 0 8px; line-height:1.5;">Pendaftaran calon klien penitipan barang gelombang II resmi dibuka. Informasi syarat dan alur pendaftaran dapat diperoleh di sekretariat.</p>
+        <span style="color:#94a3b8; font-size:12px; font-weight:600;">06 Jun 2026</span>
+      </div>
+      <div style="border-bottom:1px solid #e2e8f0; padding-bottom:20px; margin-bottom:20px;">
+        <h4 style="color:#0b1c3c; font-size:16px; font-weight:700; margin:0 0 6px;">Rekapitulasi Laporan Mutasi Mei 2026 Selesai</h4>
+        <p style="color:#64748b; font-size:14px; margin:0 0 8px; line-height:1.5;">Diberitahukan kepada seluruh pemangku kepentingan bahwa rekapitulasi laporan pergerakan stok bulan Mei telah diaudit dan diterbitkan.</p>
+        <span style="color:#94a3b8; font-size:12px; font-weight:600;">05 Jun 2026</span>
+      </div>
+      <div>
+        <h4 style="color:#0b1c3c; font-size:16px; font-weight:700; margin:0 0 6px;">Pemeriksaan Pemeliharaan Inventori Rutin</h4>
+        <p style="color:#64748b; font-size:14px; margin:0 0 8px; line-height:1.5;">Mohon kerjasamanya untuk pelaksanaan pemeliharaan dan pengecekan fisik barang titipan rutin di gudang utama.</p>
+        <span style="color:#94a3b8; font-size:12px; font-weight:600;">28 Mei 2026</span>
+      </div>
     </div>
   </div>
- </div>
 </div>
- </div>
-
-  <div class="row">
-    <div class="col-md-12">
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <strong><span class="glyphicon glyphicon-th-list"></span> <span>Ringkasan Stok per Client</span></strong>
-        </div>
-        <div class="panel-body">
-          <table class="table table-bordered table-striped">
-            <thead>
-              <tr>
-                <th class="text-center" style="width:50px;">#</th>
-                <th>Client</th>
-                <th>Barang</th>
-                <th class="text-center">Stok</th>
-                <th class="text-center">Satuan</th>
-                <th class="text-center">Kategori</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach($inventory_rows as $row): ?>
-              <tr>
-                <td class="text-center"><?php echo count_id(); ?></td>
-                <td><?php echo !empty($row['client_name']) ? remove_junk($row['client_name']) : 'Internal'; ?></td>
-                <td><?php echo remove_junk($row['name']); ?></td>
-                <td class="text-center"><?php echo (int)$row['quantity']; ?></td>
-                <td class="text-center"><?php echo !empty($row['unit_name']) ? remove_junk($row['unit_name']) : '-'; ?></td>
-                <td class="text-center"><?php echo remove_junk($row['categorie']); ?></td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="row">
-
-  </div>
 
 
 

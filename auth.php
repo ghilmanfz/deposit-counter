@@ -17,12 +17,12 @@ if(empty($errors)){
 
   } else {
     $session->msg("d", "Username atau password salah.");
-    redirect('index.php',false);
+    redirect('login.php',false);
   }
 
 } else {
    $session->msg("d", $errors);
-   redirect('index.php',false);
+   redirect('login.php',false);
 }
 
 ?>

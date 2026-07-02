@@ -98,6 +98,18 @@ function suggetion() {
             autoclose: true
         });
     initPhotoPreview();
+
+    // Inisialisasi DataTables untuk semua tabel dengan kelas .table-bordered
+    if ($.fn.DataTable) {
+      $('table.table-bordered').DataTable({
+        language: {
+          url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Indonesian.json'
+        },
+        responsive: true,
+        pageLength: 10,
+        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Semua"]]
+      });
+    }
   });
 
   function initPhotoPreview(){
