@@ -185,6 +185,7 @@ CREATE TABLE `products` (
   `m3` decimal(12,4) DEFAULT NULL,
   `sj_scan` varchar(255) DEFAULT NULL,
   `quantity` int(11) NOT NULL DEFAULT 0,
+  `pcs_per_crate` int(11) DEFAULT NULL,
   `buy_price` decimal(25,2) DEFAULT NULL,
   `sale_price` decimal(25,2) NOT NULL,
   `categorie_id` int(10) UNSIGNED NOT NULL,

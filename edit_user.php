@@ -103,7 +103,7 @@ if(isset($_POST['update-pass'])) {
                 </select>
             </div>
             <div class="form-group">
-              <label for="storage_rate">Tarif Penyimpanan / Crate / Bulan (khusus client, opsional)</label>
+              <label for="storage_rate">Tarif Penyimpanan / Satuan / Bulan (khusus client, opsional)</label>
               <input type="number" min="0" step="1000" class="form-control" name="storage_rate" value="<?php echo (isset($e_user['storage_rate']) && $e_user['storage_rate'] !== null && $e_user['storage_rate'] !== '') ? remove_junk($e_user['storage_rate']) : ''; ?>" placeholder="Kosongkan = pakai tarif global">
             </div>
             <div class="form-group clearfix">

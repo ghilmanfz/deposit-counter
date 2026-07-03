@@ -34,9 +34,10 @@
   $total_lembar = 0;
   foreach($products as $p){
     $qty = (int)$p['quantity'];
+    $pcs = isset($p['pcs_per_crate']) ? (int)$p['pcs_per_crate'] : 0;
     if($qty > 0){
-      $total_crate++;
       $total_lembar += $qty;
+      if($pcs > 0){ $total_crate += (int)round($qty / $pcs); }
     }
   }
 
@@ -59,7 +60,7 @@
           <span>Barang Saya di Gudang</span>
         </strong>
         <span class="pull-right">
-          Total: <strong><?php echo (int)$total_crate; ?></strong> krat / <strong><?php echo (int)$total_lembar; ?></strong> lembar
+          Total: <strong><?php echo (int)$total_crate; ?></strong> satuan / <strong><?php echo (int)$total_lembar; ?></strong> lembar
         </span>
       </div>
       <div class="panel-body">
@@ -114,7 +115,9 @@
             <?php foreach ($products as $product): ?>
             <?php
               $qty = (int)$product['quantity'];
-              $crate = $qty > 0 ? 1 : 0; // 1 baris = 1 crate
+              $pcs = isset($product['pcs_per_crate']) ? (int)$product['pcs_per_crate'] : 0;
+              $crate = $pcs > 0 ? (int)round($qty / $pcs) : 0;
+              $unit_disp = !empty($product['unit_name']) ? remove_junk($product['unit_name']) : 'satuan';
               $m3 = isset($product['m3']) ? $product['m3'] : null;
               $m3_disp = ($m3 !== null && $m3 !== '') ? rtrim(rtrim(number_format((float)$m3, 4, ',', '.'), '0'), ',') : null;
             ?>
@@ -143,8 +146,12 @@
               <td class="text-center"><?php echo format_product_size($product); ?></td>
               <td class="text-center"><?php echo $m3_disp !== null ? $m3_disp.' m&sup3;' : '-'; ?></td>
               <td class="text-center">
-                <strong><?php echo $crate; ?> krat</strong><br>
-                <span class="text-muted"><?php echo $qty; ?> lembar</span>
+                <?php if($pcs > 0): ?>
+                  <strong><?php echo $crate; ?> <?php echo $unit_disp; ?></strong><br>
+                  <span class="text-muted"><?php echo $qty; ?> lembar</span>
+                <?php else: ?>
+                  <?php echo $qty; ?> <?php echo $unit_disp; ?>
+                <?php endif; ?>
               </td>
               <td class="text-center"><a href="stock_history.php?product_id=<?php echo (int)$product['id']; ?>" title="Lihat riwayat keluar lengkap"><?php echo (int)$product['total_out']; ?></a></td>
               <td class="text-center"><?php echo !empty($product['unit_name']) ? remove_junk($product['unit_name']) : '-'; ?></td>

@@ -46,25 +46,30 @@
 
     if($results){
         foreach ($results as $result) {
+          $pcs_per_crate = isset($result['pcs_per_crate']) ? (int)$result['pcs_per_crate'] : 0;
+          $stok_krat = $pcs_per_crate > 0 ? (int)round((int)$result['quantity'] / $pcs_per_crate) : 0;
+          $default_qty = $pcs_per_crate > 0 ? $pcs_per_crate : 1;
+          $unit_disp = !empty($result['unit_name']) ? remove_junk($result['unit_name']) : 'satuan';
 
           $html .= "<tr>";
 
           $html .= "<td id=\"s_name\">".remove_junk($result['name']);
           $html .= !empty($result['client_name']) ? "<br><small class=\"text-muted\">Pelanggan: ".remove_junk($result['client_name'])."</small>" : "<br><small class=\"text-muted\">Stok internal</small>";
-          $html .= "<br><small class=\"text-muted\">Stok tersedia: ".(int)$result['quantity']." ".(!empty($result['unit_name']) ? remove_junk($result['unit_name']) : '')."</small>";
+          $html .= "<br><small class=\"text-muted\">Stok tersedia: ".(int)$result['quantity']." lembar".($pcs_per_crate > 0 ? " (".$stok_krat." ".$unit_disp.")" : "")."</small>";
           $html .= "<input type=\"hidden\" name=\"s_id\" value=\"{$result['id']}\">";
           $html .= "<input type=\"hidden\" name=\"price\" value=\"0.00\">";
           $html .= "<input type=\"hidden\" name=\"total\" value=\"0.00\"></td>";
           $html .= "<td id=\"s_qty\">";
-          $html .= "<input type=\"number\" min=\"1\" max=\"".(int)$result['quantity']."\" class=\"form-control\" name=\"quantity\" value=\"1\">";
+          $html .= "<input type=\"number\" min=\"1\" step=\"".$default_qty."\" max=\"".(int)$result['quantity']."\" class=\"form-control\" name=\"quantity\" value=\"".$default_qty."\">";
+          $html .= $pcs_per_crate > 0 ? "<small class=\"text-muted\">1 ".$unit_disp." = ".$pcs_per_crate." lembar</small>" : "";
           $html  .= "</td>";
           $html  .= "<td>";
           $html  .= "<input type=\"date\" class=\"form-control datePicker\" name=\"date\" data-date data-date-format=\"yyyy-mm-dd\" value=\"".date('Y-m-d')."\">";
           $html  .= "</td>";
           $storage = calculate_storage_fee($result['date'], date('Y-m-d'), 1, (int)$result['client_id']);
           $html  .= "<td>";
-          $html  .= "<input type=\"number\" min=\"0\" step=\"1000\" class=\"form-control\" name=\"billing_amount\" value=\"".(int)$storage['fee']."\">";
-          $html  .= "<small class=\"text-muted\">Penyimpanan ".$storage['days']." hari, tarif ".format_rupiah($storage['rate'])."/crate/bln</small>";
+          $html  .= "<input type=\"number\" min=\"0\" step=\"1000\" class=\"form-control\" name=\"billing_amount\" value=\"".(int)$storage['fee']."\" readonly>";
+          $html  .= "<small class=\"text-muted\">Otomatis: ".$storage['days']." hari &times; ".format_rupiah($storage['rate'])."/".$unit_disp."/bln (per ".$unit_disp.", dihitung saat simpan)</small>";
           $html  .= "</td>";
           $html  .= "<td>";
           $html  .= "<input type=\"date\" class=\"form-control\" name=\"due_date\" value=\"".date('Y-m-d', strtotime('+7 days'))."\">";

@@ -34,14 +34,14 @@
       <div class="panel-body">
         <form method="post" action="billings.php" class="form-inline">
           <div class="form-group">
-            <label>Tarif per Crate / Bulan</label>
+            <label>Tarif per Satuan (krat/palet) / Bulan</label>
             <div class="input-group">
               <span class="input-group-addon">Rp</span>
               <input type="number" min="0" step="1000" class="form-control" name="storage_rate" value="<?php echo (int)storage_rate_global(); ?>">
             </div>
           </div>
           <button type="submit" name="save_storage_rate" class="btn btn-info">Simpan Tarif</button>
-          <span class="text-muted" style="margin-left:10px;">Dihitung prorata harian: tarif &divide; 30 &times; jumlah hari titip &times; jumlah crate. Override per client di menu Edit User.</span>
+          <span class="text-muted" style="margin-left:10px;">Dihitung prorata harian: tarif &divide; 30 &times; jumlah hari titip &times; jumlah satuan (krat/palet). Override per client di menu Edit User.</span>
         </form>
       </div>
     </div>

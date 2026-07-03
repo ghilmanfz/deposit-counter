@@ -16,7 +16,11 @@
    if(empty($errors)){
      $p_name  = remove_junk($db->escape($_POST['product-title']));
      $p_cat   = remove_junk($db->escape($_POST['product-categorie']));
-     $p_qty   = (int)$db->escape($_POST['product-quantity']);
+     $isi    = (int)$db->escape($_POST['product-quantity']); // isi per satuan (lembar/PC)
+     if($isi < 1){ $isi = 1; }
+     $jumlah = (isset($_POST['product-krat']) && (int)$_POST['product-krat'] > 0) ? (int)$db->escape($_POST['product-krat']) : 1;
+     $p_qty   = $isi * $jumlah; // total lembar
+     $pcs_value = $isi > 1 ? "'".$db->escape($isi)."'" : "NULL"; // simpan isi per satuan hanya jika >1 (kontainer)
      $p_unit  = (int)$db->escape($_POST['product-unit']);
      // Detail surat jalan, grade & ukuran plywood
      $no_sj    = isset($_POST['product-sj']) ? remove_junk($db->escape($_POST['product-sj'])) : '';
@@ -65,9 +69,9 @@
      }
      $date    = make_date();
      $query  = "INSERT INTO products (";
-     $query .=" name,no_surat_jalan,no_batch,grade,tebal,lebar,panjang,m3,sj_scan,quantity,buy_price,sale_price,categorie_id,client_id,unit_id,media_id,date";
+     $query .=" name,no_surat_jalan,no_batch,grade,tebal,lebar,panjang,m3,sj_scan,quantity,pcs_per_crate,buy_price,sale_price,categorie_id,client_id,unit_id,media_id,date";
      $query .=") VALUES (";
-     $query .=" '{$p_name}', {$no_sj_value}, {$no_batch_value}, {$grade_value}, {$tebal_value}, {$lebar_value}, {$panjang_value}, {$m3_value}, {$sj_scan_value}, '{$p_qty}', '{$p_buy}', '{$p_sale}', '{$p_cat}', {$client_value}, '{$p_unit}', '{$media_id}', '{$date}'";
+     $query .=" '{$p_name}', {$no_sj_value}, {$no_batch_value}, {$grade_value}, {$tebal_value}, {$lebar_value}, {$panjang_value}, {$m3_value}, {$sj_scan_value}, '{$p_qty}', {$pcs_value}, '{$p_buy}', '{$p_sale}', '{$p_cat}', {$client_value}, '{$p_unit}', '{$media_id}', '{$date}'";
      $query .=")";
      if($db->query($query)){
        $product_id = $db->insert_id();
@@ -203,7 +207,7 @@
                     </select>
                   </div>
                   <div class="col-md-6" style="margin-top:10px;">
-                    <select class="form-control" name="product-unit">
+                    <select class="form-control" id="product-unit" name="product-unit">
                       <option value="">Pilih Satuan</option>
                     <?php foreach ($all_units as $unit): ?>
                       <option value="<?php echo (int)$unit['id'] ?>"><?php echo remove_junk($unit['name']); ?></option>
@@ -259,19 +263,41 @@
               </div>
 
               <div class="form-group">
-               <div class="row">
-                 <div class="col-md-4">
-                   <label>Jumlah Lembar (PC) per Crate</label>
-                   <div class="input-group">
-                     <span class="input-group-addon">
-                      <i class="glyphicon glyphicon-shopping-cart"></i>
-                     </span>
-                     <input type="number" min="0" class="form-control" name="product-quantity" placeholder="cth: 330">
+                <div class="row">
+                  <div class="col-md-4">
+                    <label id="label-krat">Jumlah Krat</label>
+                    <input type="number" min="1" class="form-control" id="input-krat" name="product-krat" value="1" placeholder="cth: 16">
                   </div>
-                  <small class="text-muted">1 baris = 1 crate. Pilih satuan <strong>krat</strong> di atas.</small>
-                 </div>
-               </div>
+                  <div class="col-md-4">
+                    <label id="label-pcs">Isi per Krat (lembar/PC)</label>
+                    <input type="number" min="0" class="form-control" id="input-pcs" name="product-quantity" placeholder="cth: 330">
+                  </div>
+                  <div class="col-md-4">
+                    <label>Total Lembar</label>
+                    <input type="text" class="form-control" id="input-total" value="0" readonly>
+                  </div>
+                </div>
+                <small class="text-muted">Label mengikuti <strong>Satuan</strong> yang dipilih (Krat, Palet, dst). Total lembar = Jumlah &times; Isi per satuan. Isi per satuan boleh 1 untuk barang satuan tunggal.</small>
               </div>
+              <script>
+              (function(){
+                var u=document.getElementById('product-unit'),
+                    lk=document.getElementById('label-krat'), lp=document.getElementById('label-pcs'),
+                    k=document.getElementById('input-krat'), p=document.getElementById('input-pcs'), t=document.getElementById('input-total');
+                function unitName(){
+                  if(!u || u.selectedIndex < 0) return 'Satuan';
+                  var txt=(u.options[u.selectedIndex].text||'').trim();
+                  if(!txt || txt.toLowerCase().indexOf('pilih')!==-1) return 'Satuan';
+                  return txt.charAt(0).toUpperCase()+txt.slice(1);
+                }
+                function labels(){ var n=unitName(); if(lk)lk.textContent='Jumlah '+n; if(lp)lp.textContent='Isi per '+n+' (lembar/PC)'; }
+                function calc(){ if(t) t.value=(parseInt(k.value)||0)*(parseInt(p.value)||1); }
+                if(u) u.addEventListener('change', labels);
+                if(k) k.addEventListener('input', calc);
+                if(p) p.addEventListener('input', calc);
+                labels(); calc();
+              })();
+              </script>
               <div class="form-group">
                 <div class="row">
                   <div class="col-md-4">

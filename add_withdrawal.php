@@ -74,12 +74,13 @@
                     redirect('add_withdrawal.php', false);
                   }
 
-                  $storage = calculate_storage_fee($product['date'], $transaction_date, 1, (int)$product['client_id']);
-                  if($billing_amount <= 0){
-                    $billing_amount = $storage['fee'];
-                  }
+                  $pcs_per_crate = isset($product['pcs_per_crate']) ? (int)$product['pcs_per_crate'] : 0;
+                  $crates_taken = $pcs_per_crate > 0 ? (int)round((int)$s_qty / $pcs_per_crate) : 1;
+                  if($crates_taken < 1){ $crates_taken = 1; }
+                  $storage = calculate_storage_fee($product['date'], $transaction_date, $crates_taken, (int)$product['client_id']);
+                  $billing_amount = $storage['fee'];
                   $billing_desc = 'Biaya penyimpanan '.remove_junk($product['name']).' ('.$storage['days'].' hari)';
-                  $billing_note = 'Tagihan penyimpanan prorata harian: '.format_rupiah($storage['rate']).' per crate/bulan, lama titip '.$storage['days'].' hari.';
+                  $billing_note = 'Tagihan penyimpanan prorata harian: '.format_rupiah($storage['rate']).' per satuan/bulan, lama titip '.$storage['days'].' hari.';
 
                   $billing_id = create_billing(array(
                     'client_id' => (int)$product['client_id'],

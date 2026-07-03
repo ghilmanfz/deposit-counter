@@ -24,7 +24,11 @@ if(!$product){
    if(empty($errors)){
        $p_name  = remove_junk($db->escape($_POST['product-title']));
        $p_cat   = (int)$_POST['product-categorie'];
-       $p_qty   = (int)$db->escape($_POST['product-quantity']);
+       $isi    = (int)$db->escape($_POST['product-quantity']); // isi per satuan (lembar/PC)
+       if($isi < 1){ $isi = 1; }
+       $jumlah = (isset($_POST['product-krat']) && (int)$_POST['product-krat'] > 0) ? (int)$db->escape($_POST['product-krat']) : 1;
+       $p_qty   = $isi * $jumlah; // total lembar
+       $pcs_value = $isi > 1 ? "'".$db->escape($isi)."'" : "NULL"; // simpan isi per satuan hanya jika >1 (kontainer)
        $p_unit  = (int)$db->escape($_POST['product-unit']);
        // Detail surat jalan, grade & ukuran plywood
        $no_sj    = isset($_POST['product-sj']) ? remove_junk($db->escape($_POST['product-sj'])) : '';
@@ -75,7 +79,7 @@ if(!$product){
        }
        $query   = "UPDATE products SET";
        $query  .=" name ='{$p_name}', no_surat_jalan={$no_sj_value}, no_batch={$no_batch_value}, grade={$grade_value},";
-       $query  .=" tebal={$tebal_value}, lebar={$lebar_value}, panjang={$panjang_value}, m3={$m3_value}, sj_scan={$sj_scan_value}, quantity ='{$p_qty}',";
+       $query  .=" tebal={$tebal_value}, lebar={$lebar_value}, panjang={$panjang_value}, m3={$m3_value}, sj_scan={$sj_scan_value}, quantity ='{$p_qty}', pcs_per_crate={$pcs_value},";
        $query  .=" buy_price ='{$p_buy}', sale_price ='{$p_sale}', categorie_id ='{$p_cat}',client_id={$client_value},unit_id='{$p_unit}',media_id='{$media_id}'";
        $query  .=" WHERE id ='{$product['id']}'";
        $result = $db->query($query);
@@ -246,7 +250,7 @@ if(!$product){
                     </select>
                   </div>
                   <div class="col-md-6" style="margin-top:10px;">
-                    <select class="form-control" name="product-unit">
+                    <select class="form-control" id="product-unit" name="product-unit">
                       <option value="">Pilih Satuan</option>
                       <?php foreach ($all_units as $unit): ?>
                         <option value="<?php echo (int)$unit['id'];?>" <?php if((int)$product['unit_id'] === (int)$unit['id']): echo 'selected="selected"'; endif; ?>><?php echo remove_junk($unit['name']); ?></option>
@@ -312,34 +316,59 @@ if(!$product){
               </div>
 
               <div class="form-group">
-               <div class="row">
-                 <div class="col-md-4">
-                  <div class="form-group">
-                    <label for="qty">Jumlah Lembar (PC) / Crate</label>
-                    <div class="input-group">
-                      <span class="input-group-addon">
-                       <i class="glyphicon glyphicon-shopping-cart"></i>
-                      </span>
-                      <input type="number" class="form-control" name="product-quantity" value="<?php echo remove_junk($product['quantity']); ?>">
-                   </div>
+                <?php
+                  $existing_pcs = isset($product['pcs_per_crate']) ? (int)$product['pcs_per_crate'] : 0;
+                  $existing_krat = ($existing_pcs > 0) ? (int)round((int)$product['quantity'] / $existing_pcs) : 1;
+                ?>
+                <div class="row">
+                  <div class="col-md-4">
+                    <label id="label-krat">Jumlah Krat</label>
+                    <input type="number" min="1" class="form-control" id="input-krat" name="product-krat" value="<?php echo $existing_krat; ?>">
                   </div>
-                 </div>
-                 <div class="col-md-4">
-                   <div class="form-group">
-                     <label for="defect-quantity">Tambah Jumlah Cacat</label>
-                     <input type="number" min="0" class="form-control" name="defect-quantity" value="0" placeholder="Jumlah barang cacat tambahan" />
-                   </div>
-                 </div>
-                 <div class="col-md-4">
-                   <div class="form-group">
-                     <label for="defect-note">Keterangan Cacat</label>
-                     <input type="text" class="form-control" name="defect-note" placeholder="Contoh: basah, lembab, rusak" />
-                   </div>
-                 </div>
-                 <input type="hidden" name="buying-price" value="<?php echo remove_junk($product['buy_price']);?>">
-                 <input type="hidden" name="saleing-price" value="<?php echo remove_junk($product['sale_price']);?>">
-               </div>
+                  <div class="col-md-4">
+                    <label id="label-pcs">Isi per Krat (lembar/PC)</label>
+                    <input type="number" min="0" class="form-control" id="input-pcs" name="product-quantity" value="<?php echo $existing_pcs > 0 ? $existing_pcs : (int)$product['quantity']; ?>">
+                  </div>
+                  <div class="col-md-4">
+                    <label>Total Lembar</label>
+                    <input type="text" class="form-control" id="input-total" value="<?php echo (int)$product['quantity']; ?>" readonly>
+                  </div>
+                </div>
+                <small class="text-muted">Total lembar = Jumlah Krat &times; Isi per Krat.</small>
               </div>
+              <div class="form-group">
+                <div class="row">
+                  <div class="col-md-6">
+                    <label for="defect-quantity">Tambah Jumlah Cacat (lembar)</label>
+                    <input type="number" min="0" class="form-control" name="defect-quantity" value="0" placeholder="Jumlah lembar cacat tambahan" />
+                  </div>
+                  <div class="col-md-6">
+                    <label for="defect-note">Keterangan Cacat</label>
+                    <input type="text" class="form-control" name="defect-note" placeholder="Contoh: basah, lembab, rusak" />
+                  </div>
+                </div>
+                <input type="hidden" name="buying-price" value="<?php echo remove_junk($product['buy_price']);?>">
+                <input type="hidden" name="saleing-price" value="<?php echo remove_junk($product['sale_price']);?>">
+              </div>
+              <script>
+              (function(){
+                var u=document.getElementById('product-unit'),
+                    lk=document.getElementById('label-krat'), lp=document.getElementById('label-pcs'),
+                    k=document.getElementById('input-krat'), p=document.getElementById('input-pcs'), t=document.getElementById('input-total');
+                function unitName(){
+                  if(!u || u.selectedIndex < 0) return 'Satuan';
+                  var txt=(u.options[u.selectedIndex].text||'').trim();
+                  if(!txt || txt.toLowerCase().indexOf('pilih')!==-1) return 'Satuan';
+                  return txt.charAt(0).toUpperCase()+txt.slice(1);
+                }
+                function labels(){ var n=unitName(); if(lk)lk.textContent='Jumlah '+n; if(lp)lp.textContent='Isi per '+n+' (lembar/PC)'; }
+                function calc(){ if(t) t.value=(parseInt(k.value)||0)*(parseInt(p.value)||1); }
+                if(u) u.addEventListener('change', labels);
+                if(k) k.addEventListener('input', calc);
+                if(p) p.addEventListener('input', calc);
+                labels(); calc();
+              })();
+              </script>
               <button type="submit" name="product" class="btn btn-danger">Update Barang</button>
           </form>
          </div>

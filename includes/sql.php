@@ -301,7 +301,7 @@ function tableExists($table){
      }
 
      $sql  =" SELECT p.id,p.name,p.quantity,p.buy_price,p.sale_price,p.client_id,p.unit_id,p.media_id,p.date,";
-     $sql .= "p.no_surat_jalan,p.no_batch,p.grade,p.tebal,p.lebar,p.panjang,p.m3,p.sj_scan,";
+     $sql .= "p.no_surat_jalan,p.no_batch,p.grade,p.tebal,p.lebar,p.panjang,p.m3,p.sj_scan,p.pcs_per_crate,";
      $sql .= "(SELECT COALESCE(SUM(quantity),0) FROM stock_movements sm WHERE sm.product_id=p.id AND sm.movement_type='out') AS total_out,";
      $sql .= "(SELECT MAX(created_at) FROM stock_movements sm WHERE sm.product_id=p.id AND sm.movement_type='out') AS last_out_date,";
      $sql .= " c.name AS categorie,m.file_name AS image,u.name AS client_name,un.name AS unit_name";
@@ -315,7 +315,7 @@ function tableExists($table){
       $sql .= " WHERE p.client_id='".$db->escape((int)$client_id)."'";
     }
 
-    $sql  .=" ORDER BY p.id ASC";
+    $sql  .=" ORDER BY p.id DESC";
     return find_by_sql($sql);
 
    }
@@ -732,7 +732,7 @@ function tableExists($table){
       $sql .= " WHERE b.client_id='".$db->escape((int)$client_id)."'";
     }
 
-    $sql .= " ORDER BY b.due_date ASC, b.id DESC";
+    $sql .= " ORDER BY b.id DESC";
     return find_by_sql($sql);
   }
 
@@ -1094,7 +1094,8 @@ function ensure_warehouse_schema($force = false){
       'lebar'          => "ADD lebar decimal(10,2) DEFAULT NULL AFTER tebal",
       'panjang'        => "ADD panjang decimal(10,2) DEFAULT NULL AFTER lebar",
       'm3'             => "ADD m3 decimal(12,4) DEFAULT NULL AFTER panjang",
-      'sj_scan'        => "ADD sj_scan varchar(255) DEFAULT NULL AFTER m3"
+      'sj_scan'        => "ADD sj_scan varchar(255) DEFAULT NULL AFTER m3",
+      'pcs_per_crate'  => "ADD pcs_per_crate int(11) DEFAULT NULL AFTER quantity"
     );
     foreach($plywood_columns as $col => $ddl){
       if(!column_exists('products',$col)){
