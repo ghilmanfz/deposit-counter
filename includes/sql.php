@@ -70,6 +70,25 @@ function count_by_id($table){
   }
 }
 /*--------------------------------------------------------------*/
+/* Count baris milik satu client (berdasarkan client_id).
+/* Catatan: tabel withdrawals tidak punya client_id -> join via products.
+/*--------------------------------------------------------------*/
+function count_by_client_id($table, $client_id){
+  global $db;
+  $client_id = (int)$client_id;
+  if(!tableExists($table)){ return array('total' => 0); }
+  if($table === 'withdrawals'){
+    $sql = "SELECT COUNT(w.id) AS total FROM withdrawals w LEFT JOIN products p ON p.id=w.product_id WHERE p.client_id='{$client_id}'";
+  } elseif(column_exists($table, 'client_id')){
+    $sql = "SELECT COUNT(id) AS total FROM ".$db->escape($table)." WHERE client_id='{$client_id}'";
+  } else {
+    return array('total' => 0);
+  }
+  $result = $db->query($sql);
+  $row = $db->fetch_assoc($result);
+  return $row ? $row : array('total' => 0);
+}
+/*--------------------------------------------------------------*/
 /* Determine if database table exists
 /*--------------------------------------------------------------*/
 function tableExists($table){
@@ -244,6 +263,16 @@ function tableExists($table){
     }
 
     return ($user && (int)$user['user_level'] === USER_LEVEL_CLIENT);
+  }
+
+  /*--------------------------------------------------------------*/
+  /* Cek apakah user saat ini boleh mengakses halaman selevel $required_level.
+  /* Dipakai untuk menyembunyikan item menu yang aksesnya ditolak.
+  /* Aturan sama dengan page_require_level: level user <= required_level.
+  /*--------------------------------------------------------------*/
+  function menu_can($required_level){
+    $user = current_user();
+    return ($user && (int)$user['user_level'] <= (int)$required_level);
   }
 
   function current_client_id($user = null){
@@ -1121,6 +1150,34 @@ function ensure_warehouse_schema($force = false){
     $db->query("ALTER TABLE users ADD storage_rate decimal(25,2) DEFAULT NULL");
   }
 
+  // Pengumuman (announcements) untuk landing page & dashboard
+  $db->query("CREATE TABLE IF NOT EXISTS announcements (
+    id int(11) unsigned NOT NULL AUTO_INCREMENT,
+    title varchar(255) NOT NULL,
+    content text DEFAULT NULL,
+    category varchar(50) DEFAULT 'UMUM',
+    publish_date date DEFAULT NULL,
+    is_active tinyint(1) NOT NULL DEFAULT '1',
+    created_by int(11) unsigned DEFAULT NULL,
+    created_at datetime NOT NULL,
+    PRIMARY KEY (id),
+    KEY is_active (is_active),
+    KEY publish_date (publish_date)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3");
+  $ann_cnt = $db->query("SELECT COUNT(id) AS c FROM announcements");
+  $ann_row = $ann_cnt ? $db->fetch_assoc($ann_cnt) : null;
+  if($ann_row && (int)$ann_row['c'] === 0){
+    $seed_ann = array(
+      array('Pendaftaran Klien Baru Gelombang II Dibuka','Pendaftaran calon klien penitipan barang gelombang II resmi dibuka. Informasi syarat dan alur pendaftaran dapat diperoleh di sekretariat.','2026-06-06'),
+      array('Rekapitulasi Laporan Mutasi Mei 2026 Selesai','Diberitahukan kepada seluruh pemangku kepentingan bahwa rekapitulasi laporan pergerakan stok bulan Mei telah diaudit dan diterbitkan.','2026-06-05'),
+      array('Pemeriksaan Pemeliharaan Inventori Rutin','Mohon kerjasamanya untuk pelaksanaan pemeliharaan dan pengecekan fisik barang titipan rutin di gudang utama.','2026-05-28')
+    );
+    foreach($seed_ann as $sa){
+      $st=$db->escape($sa[0]); $sc=$db->escape($sa[1]); $sd=$db->escape($sa[2]);
+      $db->query("INSERT INTO announcements (title,content,category,publish_date,is_active,created_at) VALUES ('{$st}','{$sc}','UMUM','{$sd}','1','".make_date()."')");
+    }
+  }
+
   ensure_upload_directory(SITE_ROOT.DS.'..'.DS.'uploads'.DS.'defects');
   $done = true;
   return true;
@@ -1226,6 +1283,111 @@ function calculate_storage_fee($masuk_date, $keluar_date, $crates, $client_id){
   $crates = (int)$crates < 1 ? 1 : (int)$crates;
   $fee = round(($rate / 30) * $days * $crates);
   return array('rate' => $rate, 'days' => $days, 'crates' => $crates, 'fee' => $fee);
+}
+
+/*--------------------------------------------------------------*/
+/* Pengumuman (announcements)
+/*--------------------------------------------------------------*/
+function find_all_announcements($only_active = false, $limit = null){
+  global $db;
+  ensure_warehouse_schema();
+  $sql  = "SELECT a.*, u.name AS created_by_name FROM announcements a ";
+  $sql .= "LEFT JOIN users u ON u.id = a.created_by";
+  if($only_active){ $sql .= " WHERE a.is_active='1'"; }
+  $sql .= " ORDER BY a.publish_date DESC, a.id DESC";
+  if($limit !== null){ $sql .= " LIMIT ".(int)$limit; }
+  return find_by_sql($sql);
+}
+
+function find_announcement_by_id($id){
+  ensure_warehouse_schema();
+  return find_by_id('announcements', (int)$id);
+}
+
+function create_announcement($data = array()){
+  global $db;
+  ensure_warehouse_schema();
+  $raw_title = trim(isset($data['title']) ? $data['title'] : '');
+  if($raw_title === ''){ return false; }
+  $title = $db->escape($raw_title);
+  $content = $db->escape(isset($data['content']) ? trim($data['content']) : '');
+  $category = trim(isset($data['category']) ? $data['category'] : '');
+  $category = $db->escape($category !== '' ? $category : 'UMUM');
+  $publish_date = !empty($data['publish_date']) ? $db->escape($data['publish_date']) : date('Y-m-d');
+  $is_active = (isset($data['is_active']) && (int)$data['is_active'] === 1) ? 1 : 0;
+  $user = current_user();
+  $created_by = $user ? (int)$user['id'] : 0;
+  $created_by_value = $created_by > 0 ? "'{$created_by}'" : "NULL";
+  $sql  = "INSERT INTO announcements (title,content,category,publish_date,is_active,created_by,created_at) VALUES (";
+  $sql .= "'{$title}','{$content}','{$category}','{$publish_date}','{$is_active}',{$created_by_value},'".make_date()."')";
+  return $db->query($sql) ? $db->insert_id() : false;
+}
+
+function update_announcement($id, $data = array()){
+  global $db;
+  ensure_warehouse_schema();
+  $id = (int)$id;
+  $raw_title = trim(isset($data['title']) ? $data['title'] : '');
+  if($id <= 0 || $raw_title === ''){ return false; }
+  $title = $db->escape($raw_title);
+  $content = $db->escape(isset($data['content']) ? trim($data['content']) : '');
+  $category = trim(isset($data['category']) ? $data['category'] : '');
+  $category = $db->escape($category !== '' ? $category : 'UMUM');
+  $publish_date = !empty($data['publish_date']) ? $db->escape($data['publish_date']) : date('Y-m-d');
+  $is_active = (isset($data['is_active']) && (int)$data['is_active'] === 1) ? 1 : 0;
+  $sql  = "UPDATE announcements SET title='{$title}', content='{$content}', category='{$category}', ";
+  $sql .= "publish_date='{$publish_date}', is_active='{$is_active}' WHERE id='{$id}' LIMIT 1";
+  return $db->query($sql);
+}
+
+/*--------------------------------------------------------------*/
+/* Konfigurasi Landing Page (disimpan di app_settings key/value)
+/*--------------------------------------------------------------*/
+function landing_setting_defaults(){
+  return array(
+    'landing_hero_badge'     => 'Portal Sistem Informasi v1.0.0',
+    'landing_hero_title'     => 'Membangun Sistem Unggul dalam Pengelolaan Penitipan',
+    'landing_hero_subtitle'  => 'Selamat datang di Sistem Informasi Manajemen Terpusat Sistem Penitipan Barang. Solusi digital modern untuk mengelola data barang, pencatatan mutasi, tagihan klien, dan pelaporan operasional secara real-time.',
+    'landing_footer_address' => 'Jl. Sadewa Saraswati No. 32, Lantai 3, Sleman, D.I. Yogyakarta',
+    'landing_footer_email'   => 'info@penitipanbarang.com',
+    'landing_footer_phone'   => '150 770',
+    'landing_footer_hotline' => '150 990'
+  );
+}
+
+function landing_setting($key){
+  $d = landing_setting_defaults();
+  return get_setting($key, isset($d[$key]) ? $d[$key] : '');
+}
+
+/*--------------------------------------------------------------*/
+/* Logo aplikasi (branding) -> uploads/branding, disimpan di app_settings
+/*--------------------------------------------------------------*/
+function save_app_logo($field = 'app_logo_file'){
+  if(empty($_FILES[$field]) || !isset($_FILES[$field]['name']) || $_FILES[$field]['name'] === '' || $_FILES[$field]['error'] !== UPLOAD_ERR_OK){
+    return '';
+  }
+  $dir = SITE_ROOT.DS.'..'.DS.'uploads'.DS.'branding';
+  ensure_upload_directory($dir);
+  $allowed = array('jpg','jpeg','png','gif','svg','webp');
+  $ext = strtolower(pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION));
+  if(!in_array($ext, $allowed)){ return ''; }
+  $tmp = $_FILES[$field]['tmp_name'];
+  if($ext !== 'svg' && !@getimagesize($tmp)){ return ''; }
+  $safe_name = 'logo_'.date('YmdHis').'_'.randString(4).'.'.$ext;
+  if(move_uploaded_file($tmp, $dir.DS.$safe_name)){
+    return $safe_name;
+  }
+  return '';
+}
+
+/* URL logo aktif; fallback ke avatar bawaan jika belum diunggah */
+function app_logo_url(){
+  $logo = get_setting('app_logo', '');
+  if($logo !== '' && file_exists(SITE_ROOT.DS.'..'.DS.'uploads'.DS.'branding'.DS.$logo)){
+    return htmlspecialchars('uploads/branding/'.$logo);
+  }
+  return htmlspecialchars('https://ui-avatars.com/api/?name=PB&background=10b981&color=ffffff&bold=true');
 }
 
 function find_all_units(){

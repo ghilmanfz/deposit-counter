@@ -82,7 +82,7 @@
     </header>
     <div class="sidebar">
       <div class="sidebar-top-brand">
-        <img src="https://ui-avatars.com/api/?name=PB&background=10b981&color=ffffff&bold=true" alt="Brand Logo">
+        <img src="<?php echo app_logo_url(); ?>" alt="Brand Logo">
         <h3>Sistem Penitipan<span>SISTEM MANAJEMEN TERPADU</span></h3>
       </div>
       

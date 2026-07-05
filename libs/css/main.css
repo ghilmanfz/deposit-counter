@@ -594,6 +594,12 @@ table.table { margin-bottom: 0; border-collapse: separate; border-spacing: 0; }
 .pagination > li.active > a, .pagination > li.active > span, .pagination > li.active > a:hover, .pagination > li.active > span:hover { background-color: #10b981; border-color: #10b981; color: #ffffff; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
 .pagination > li > a:hover { background-color: #f1f5f9; color: #10b981; border-color: #cbd5e1; }
 
+/* DataTables: scroll horizontal saat kolom banyak agar tabel tidak terpotong di sisi kanan */
+.dataTables_scroll { clear: both; }
+.dataTables_scrollBody { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+.dataTables_scroll .table-bordered { border-radius: 0; border-left: none; border-right: none; }
+.dataTables_scrollHead .table-bordered { border-bottom: none; }
+
 td img.img-thumbnail { width: 80px; height: 80px; vertical-align: top; border-radius: 14px; object-fit: cover; }
 .img-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
 img.img-size-2 { width: 125px; height: 125px; border-radius: 16px; }

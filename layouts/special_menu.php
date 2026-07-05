@@ -5,12 +5,14 @@
       <span>Dashboard</span>
     </a>
   </li>
+  <?php if(menu_can(1)): // Kategori hanya untuk admin (level 1) ?>
   <li>
     <a href="categorie.php" >
       <i class="glyphicon glyphicon-indent-left"></i>
       <span>Kategori Barang</span>
     </a>
   </li>
+  <?php endif; ?>
   <li>
     <a href="#" class="submenu-toggle">
       <i class="glyphicon glyphicon-th-large"></i>

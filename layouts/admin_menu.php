@@ -45,6 +45,16 @@
   </li>
   <li>
     <a href="#" class="submenu-toggle">
+      <i class="glyphicon glyphicon-bullhorn"></i>
+      <span>Konten &amp; Publikasi</span>
+    </a>
+    <ul class="nav submenu">
+      <li><a href="announcements.php">Pengumuman</a> </li>
+      <li><a href="landing_settings.php">Kelola Landing Page</a> </li>
+    </ul>
+  </li>
+  <li>
+    <a href="#" class="submenu-toggle">
       <i class="glyphicon glyphicon-credit-card"></i>
        <span>Transaksi Barang</span>
       </a>

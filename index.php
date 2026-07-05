@@ -3,13 +3,14 @@
   require_once('includes/load.php');
   $msg = $session->msg();
   if($session->isUserLoggedIn(true)) { redirect_by_user_level(); }
+  $landing_announcements = find_all_announcements(true, 3);
 ?>
 <?php include_once('layouts/header.php'); ?>
 
 <!-- Navigation Bar Landing Page -->
 <nav class="landing-navbar">
   <div class="brand">
-    <img src="https://ui-avatars.com/api/?name=PB&background=10b981&color=ffffff&bold=true" alt="Brand Logo">
+    <img src="<?php echo app_logo_url(); ?>" alt="Brand Logo">
     Sistem Penitipan Barang<span>.</span>
   </div>
   <div class="landing-nav-links">
@@ -27,9 +28,9 @@
     <?php echo display_msg($msg); ?>
     <div class="row" style="display:flex; align-items:center; flex-wrap:wrap;">
       <div class="col-md-7">
-        <div class="hero-badge">&bull; Portal Sistem Informasi v1.0.0</div>
-        <h1>Membangun Sistem <span>Unggul</span> dalam Pengelolaan Penitipan</h1>
-        <p>Selamat datang di Sistem Informasi Manajemen Terpusat Sistem Penitipan Barang. Solusi digital modern untuk mengelola data barang, pencatatan mutasi, tagihan klien, dan pelaporan operasional secara real-time.</p>
+        <div class="hero-badge">&bull; <?php echo htmlspecialchars(landing_setting('landing_hero_badge')); ?></div>
+        <h1><?php echo htmlspecialchars(landing_setting('landing_hero_title')); ?></h1>
+        <p><?php echo htmlspecialchars(landing_setting('landing_hero_subtitle')); ?></p>
         <div class="landing-hero-actions">
           <a href="login.php" class="landing-btn-primary">Buka Dashboard &rarr;</a>
           <a href="#fitur" class="landing-btn-outline">Pelajari Selengkapnya</a>
@@ -179,45 +180,25 @@
     </div>
     
     <div class="row">
-      <div class="col-md-4">
-        <div class="news-card">
-          <div class="news-header">
-            <span class="badge">UMUM</span>
-            <span class="date">06 JUN 2026</span>
-          </div>
-          <div class="news-body">
-            <h3>Pendaftaran Klien Baru Gelombang II Dibuka</h3>
-            <p>Pendaftaran calon klien penitipan barang gelombang II resmi dibuka. Informasi syarat dan alur pendaftaran dapat diperoleh di sekretariat.</p>
-            <a href="login.php">Baca selengkapnya &rarr;</a>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="news-card">
-          <div class="news-header">
-            <span class="badge">UMUM</span>
-            <span class="date">05 JUN 2026</span>
-          </div>
-          <div class="news-body">
-            <h3>Rekapitulasi Laporan Mutasi Mei 2026 Selesai</h3>
-            <p>Diberitahukan kepada seluruh pemangku kepentingan bahwa rekapitulasi laporan pergerakan stok bulan Mei telah diaudit dan diterbitkan.</p>
-            <a href="login.php">Baca selengkapnya &rarr;</a>
+      <?php if(empty($landing_announcements)): ?>
+        <div class="col-md-12"><p class="section-subtitle" style="text-align:left;">Belum ada pengumuman.</p></div>
+      <?php else: ?>
+        <?php foreach($landing_announcements as $la): ?>
+        <div class="col-md-4">
+          <div class="news-card">
+            <div class="news-header">
+              <span class="badge">INFO</span>
+              <span class="date"><?php echo !empty($la['publish_date']) ? strtoupper(date('d M Y', strtotime($la['publish_date']))) : ''; ?></span>
+            </div>
+            <div class="news-body">
+              <h3><?php echo htmlspecialchars($la['title']); ?></h3>
+              <p><?php echo nl2br(htmlspecialchars($la['content'])); ?></p>
+              <a href="login.php">Baca selengkapnya &rarr;</a>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="col-md-4">
-        <div class="news-card">
-          <div class="news-header">
-            <span class="badge">UMUM</span>
-            <span class="date">28 MEI 2026</span>
-          </div>
-          <div class="news-body">
-            <h3>Pemeriksaan Pemeliharaan Inventori Rutin</h3>
-            <p>Mohon kerjasamanya untuk pelaksanaan pemeliharaan dan pengecekan fisik barang titipan rutin di gudang utama. Akses dibatasi sementara.</p>
-            <a href="login.php">Baca selengkapnya &rarr;</a>
-          </div>
-        </div>
-      </div>
+        <?php endforeach; ?>
+      <?php endif; ?>
     </div>
   </div>
 </section>
@@ -228,7 +209,7 @@
     <div class="row">
       <div class="col-md-5">
         <div class="landing-footer-brand">
-          <img src="https://ui-avatars.com/api/?name=PB&background=10b981&color=ffffff&bold=true" alt="Brand Logo">
+          <img src="<?php echo app_logo_url(); ?>" alt="Brand Logo">
           Sistem Penitipan Barang<span>.</span>
         </div>
         <p style="max-width: 380px; line-height: 1.7; margin-top: 20px;">
@@ -248,16 +229,16 @@
         <h4>SEKRETARIAT & HUBUNGAN</h4>
         <p style="margin-bottom: 12px; display:flex; gap:12px;">
           <i class="glyphicon glyphicon-map-marker" style="color:#10b981; font-size:18px;"></i>
-          <span>Jl. Sadewa Saraswati No. 32, Lantai 3, Sleman, D.I. Yogyakarta</span>
+          <span><?php echo htmlspecialchars(landing_setting('landing_footer_address')); ?></span>
         </p>
         <p style="display:flex; gap:12px;">
           <i class="glyphicon glyphicon-envelope" style="color:#10b981; font-size:16px;"></i>
-          <span>info@penitipanbarang.com</span>
+          <span><?php echo htmlspecialchars(landing_setting('landing_footer_email')); ?></span>
         </p>
       </div>
     </div>
     <div class="landing-footer-copy">
-      <div>SEKRETARIAT: <strong>150 770</strong> &nbsp;&nbsp;|&nbsp;&nbsp; LAYANAN 24/7: <strong style="color:#10b981;">150 990</strong></div>
+      <div>SEKRETARIAT: <strong><?php echo htmlspecialchars(landing_setting('landing_footer_phone')); ?></strong> &nbsp;&nbsp;|&nbsp;&nbsp; LAYANAN 24/7: <strong style="color:#10b981;"><?php echo htmlspecialchars(landing_setting('landing_footer_hotline')); ?></strong></div>
       <div>&copy; <?php echo date('Y'); ?> Sistem Penitipan Barang. Hak Cipta Dilindungi Undang-Undang.</div>
     </div>
   </div>

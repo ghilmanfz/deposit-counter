@@ -14,6 +14,8 @@
  $c_my_withdrawal = count_by_client_id('withdrawals', $user_id);
  $c_my_billing    = count_by_client_id('billings', $user_id);
  $c_my_do         = count_by_client_id('delivery_orders', $user_id);
+ $msg             = $session->msg();
+ $dashboard_announcements = find_all_announcements(true, 3);
 ?>
 <?php include_once('layouts/header.php'); ?>
 
@@ -111,21 +113,14 @@
         <h3 class="custom-panel-title"><i class="glyphicon glyphicon-bullhorn"></i> Papan Pengumuman</h3>
         <a href="#" class="custom-panel-link">Semua</a>
       </div>
-      <div style="border-bottom:1px solid #e2e8f0; padding-bottom:20px; margin-bottom:20px;">
-        <h4 style="color:#0b1c3c; font-size:16px; font-weight:700; margin:0 0 6px;">Pendaftaran Klien Baru Gelombang II Dibuka</h4>
-        <p style="color:#64748b; font-size:14px; margin:0 0 8px; line-height:1.5;">Pendaftaran calon klien penitipan barang gelombang II resmi dibuka. Informasi syarat dan alur pendaftaran dapat diperoleh di sekretariat.</p>
-        <span style="color:#94a3b8; font-size:12px; font-weight:600;">06 Jun 2026</span>
+      <?php $__n = count($dashboard_announcements); foreach($dashboard_announcements as $__i => $da): ?>
+      <div style="<?php echo ($__i < $__n - 1) ? 'border-bottom:1px solid #e2e8f0; padding-bottom:20px; margin-bottom:20px;' : ''; ?>">
+        <h4 style="color:#0b1c3c; font-size:16px; font-weight:700; margin:0 0 6px;"><?php echo htmlspecialchars($da['title']); ?></h4>
+        <p style="color:#64748b; font-size:14px; margin:0 0 8px; line-height:1.5;"><?php echo nl2br(htmlspecialchars($da['content'])); ?></p>
+        <span style="color:#94a3b8; font-size:12px; font-weight:600;"><?php echo !empty($da['publish_date']) ? date('d M Y', strtotime($da['publish_date'])) : ''; ?></span>
       </div>
-      <div style="border-bottom:1px solid #e2e8f0; padding-bottom:20px; margin-bottom:20px;">
-        <h4 style="color:#0b1c3c; font-size:16px; font-weight:700; margin:0 0 6px;">Rekapitulasi Laporan Mutasi Mei 2026 Selesai</h4>
-        <p style="color:#64748b; font-size:14px; margin:0 0 8px; line-height:1.5;">Diberitahukan kepada seluruh pemangku kepentingan bahwa rekapitulasi laporan pergerakan stok bulan Mei telah diaudit dan diterbitkan.</p>
-        <span style="color:#94a3b8; font-size:12px; font-weight:600;">05 Jun 2026</span>
-      </div>
-      <div>
-        <h4 style="color:#0b1c3c; font-size:16px; font-weight:700; margin:0 0 6px;">Pemeriksaan Pemeliharaan Inventori Rutin</h4>
-        <p style="color:#64748b; font-size:14px; margin:0 0 8px; line-height:1.5;">Mohon kerjasamanya untuk pelaksanaan pemeliharaan dan pengecekan fisik barang titipan rutin di gudang utama.</p>
-        <span style="color:#94a3b8; font-size:12px; font-weight:600;">28 Mei 2026</span>
-      </div>
+      <?php endforeach; ?>
+      <?php if(empty($dashboard_announcements)): ?><p class="text-muted">Belum ada pengumuman.</p><?php endif; ?>
     </div>
   </div>
 </div>

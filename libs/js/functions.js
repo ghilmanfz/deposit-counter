@@ -101,14 +101,18 @@ function suggetion() {
 
     // Inisialisasi DataTables untuk semua tabel dengan kelas .table-bordered
     if ($.fn.DataTable) {
-      $('table.table-bordered').DataTable({
+      var dtables = $('table.table-bordered').DataTable({
         language: {
           url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Indonesian.json'
         },
-        responsive: true,
+        scrollX: true,      // geser horizontal saat kolom banyak (tidak terpotong)
+        autoWidth: false,
         pageLength: 10,
         lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Semua"]]
       });
+      // Ratakan ulang lebar kolom setelah bahasa (async) selesai & saat resize
+      $(window).on('resize', function(){ dtables.columns.adjust(); });
+      setTimeout(function(){ dtables.columns.adjust(); }, 400);
     }
   });
 
