@@ -20,7 +20,8 @@
       redirect('access_control.php', false);
     }
     rename_role($role_id, isset($_POST['role_name']) ? $_POST['role_name'] : '');
-    set_role_status($role_id, isset($_POST['role_status']) ? (int)$_POST['role_status'] : 0);
+    $status = role_is_protected((int)$role['group_level']) ? 1 : (isset($_POST['role_status']) ? (int)$_POST['role_status'] : 0);
+    set_role_status($role_id, $status);
     $session->msg('s','Role berhasil diperbarui.');
     redirect('access_control.php', false);
   }
