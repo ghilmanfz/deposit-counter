@@ -1,6 +1,6 @@
 <?php
   require_once('includes/load.php');
-  page_require_level(2);
+  require_permission('penagihan','process');
   ensure_consignment_tables();
 
   $billing_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;

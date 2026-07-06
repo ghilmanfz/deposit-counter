@@ -1,6 +1,6 @@
 <?php
   require_once('includes/load.php');
-  page_require_level(4);
+  require_permission('surat_jalan','print');
   ensure_consignment_tables();
 
   $delivery_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -12,6 +12,7 @@
   }
 
   if($order['movement_type'] === 'out' && (int)$order['stock_processed'] === 0){
+    require_permission('surat_jalan','process');
     if(!process_delivery_order_stock($delivery_id)){
       $session->msg('d',' Surat jalan tidak bisa diproses karena stok tidak mencukupi atau data tidak valid.');
       redirect('delivery_orders.php', false);

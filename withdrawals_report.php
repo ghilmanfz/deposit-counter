@@ -2,7 +2,7 @@
 $page_title = 'Laporan Pengambilan';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
-   page_require_level(3);
+   require_permission('laporan','view');
 ?>
 <?php include_once('layouts/header.php'); ?>
 <div class="row">

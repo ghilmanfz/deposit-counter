@@ -1,7 +1,7 @@
 <?php
   $page_title = 'Edit Satuan Barang';
   require_once('includes/load.php');
-  page_require_level(2);
+  require_permission('satuan','update');
   $unit = find_unit_by_id(isset($_GET['id']) ? (int)$_GET['id'] : 0);
   if(!$unit){
     $session->msg('d','Satuan tidak ditemukan.');

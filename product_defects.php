@@ -1,7 +1,11 @@
 <?php
   $page_title = 'Data Barang Cacat';
   require_once('includes/load.php');
-  page_require_level(4);
+  if(is_client_user()){
+    require_permission('barang_saya','view');
+  } else {
+    require_permission('barang','view');
+  }
 
   $product_id = isset($_GET['product_id']) ? (int)$_GET['product_id'] : 0;
   $product = find_product_details($product_id);

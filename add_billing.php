@@ -1,7 +1,7 @@
 <?php
   $page_title = 'Tambah Tagihan';
   require_once('includes/load.php');
-  page_require_level(2);
+  require_permission('penagihan','create');
   ensure_consignment_tables();
   $clients = find_active_clients();
   $products = join_product_table();

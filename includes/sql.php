@@ -471,6 +471,15 @@ function tableExists($table){
     return require_permission($module_key, 'view');
   }
 
+  function require_login(){
+    global $session;
+    if(!$session->isUserLoggedIn(true)){
+      $session->msg('d','Silakan login...');
+      redirect('index.php', false);
+    }
+    return true;
+  }
+
   function set_role_action_permission($level, $module_key, $action_key, $allowed){
     global $db;
     ensure_warehouse_schema();

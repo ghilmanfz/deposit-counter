@@ -1,9 +1,10 @@
 <?php
   $page_title = 'Satuan Barang';
   require_once('includes/load.php');
-  page_require_level(2);
+  require_permission('satuan','view');
 
   if(isset($_POST['add_unit'])){
+    require_permission('satuan','create');
     $req_fields = array('unit-name');
     validate_fields($req_fields);
     if(empty($errors)){
@@ -22,6 +23,7 @@
 <?php include_once('layouts/header.php'); ?>
 <div class="row"><div class="col-md-12"><?php echo display_msg($msg); ?></div></div>
 <div class="row">
+  <?php if(role_can_action('satuan','create')): ?>
   <div class="col-md-4">
     <div class="panel panel-default">
       <div class="panel-heading"><strong><span class="glyphicon glyphicon-plus"></span> Tambah Satuan</strong></div>
@@ -38,7 +40,8 @@
       </div>
     </div>
   </div>
-  <div class="col-md-8">
+  <?php endif; ?>
+  <div class="<?php echo role_can_action('satuan','create') ? 'col-md-8' : 'col-md-12'; ?>">
     <div class="panel panel-default">
       <div class="panel-heading"><strong><span class="glyphicon glyphicon-tags"></span> Data Satuan Barang</strong></div>
       <div class="panel-body">
@@ -52,8 +55,12 @@
               <td><?php echo !empty($unit['description']) ? remove_junk($unit['description']) : '-'; ?></td>
               <td class="text-center">
                 <div class="btn-group">
-                  <a href="edit_unit.php?id=<?php echo (int)$unit['id']; ?>" class="btn btn-info btn-xs" title="Edit"><span class="glyphicon glyphicon-edit"></span></a>
-                  <a href="delete_unit.php?id=<?php echo (int)$unit['id']; ?>" class="btn btn-danger btn-xs" title="Hapus"><span class="glyphicon glyphicon-trash"></span></a>
+                  <?php if(role_can_action('satuan','update')): ?>
+                    <a href="edit_unit.php?id=<?php echo (int)$unit['id']; ?>" class="btn btn-info btn-xs" title="Edit"><span class="glyphicon glyphicon-edit"></span></a>
+                  <?php endif; ?>
+                  <?php if(role_can_action('satuan','delete')): ?>
+                    <a href="delete_unit.php?id=<?php echo (int)$unit['id']; ?>" class="btn btn-danger btn-xs" title="Hapus"><span class="glyphicon glyphicon-trash"></span></a>
+                  <?php endif; ?>
                 </div>
               </td>
             </tr>

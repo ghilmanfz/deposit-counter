@@ -2,7 +2,7 @@
   $page_title = 'Laporan Bulanan Pengambilan';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
-   page_require_level(3);
+   require_permission('laporan','view');
 ?>
 <?php
  $year = date('Y');

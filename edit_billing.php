@@ -1,7 +1,7 @@
 <?php
   $page_title = 'Edit Tagihan';
   require_once('includes/load.php');
-  page_require_level(2);
+  require_permission('penagihan','update');
   ensure_consignment_tables();
   $billing = find_billing_details(isset($_GET['id']) ? (int)$_GET['id'] : 0);
   if(!$billing){

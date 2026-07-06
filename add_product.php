@@ -2,7 +2,7 @@
   $page_title = 'Tambah Barang Titipan';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
-  page_require_level(2);
+  require_permission('barang','create');
   $all_categories = find_all('categories');
   $all_photo = find_all('media');
   $all_clients = find_active_clients();

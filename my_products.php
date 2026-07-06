@@ -1,7 +1,7 @@
 <?php
   $page_title = 'Barang Saya';
   require_once('includes/load.php');
-  page_require_level(4);
+  require_permission('barang_saya','view');
 
   if(!is_client_user()){
     redirect_by_user_level();

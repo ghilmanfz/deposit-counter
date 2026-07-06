@@ -2,7 +2,7 @@
   $page_title = 'Pengambilan Barang';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
-   page_require_level(3);
+   require_permission('transaksi','view');
 ?>
 <?php
 $sales = find_all_sale();
@@ -22,9 +22,11 @@ $msg = $session->msg();
             <span class="glyphicon glyphicon-th"></span>
             <span>Pengambilan Barang</span>
           </strong>
-          <div class="pull-right">
-            <a href="add_withdrawal.php" class="btn btn-primary">Tambah Pengambilan</a>
-          </div>
+          <?php if(role_can_action('transaksi','create')): ?>
+            <div class="pull-right">
+              <a href="add_withdrawal.php" class="btn btn-primary">Tambah Pengambilan</a>
+            </div>
+          <?php endif; ?>
         </div>
         <div class="panel-body">
           <table class="table table-bordered table-striped">
@@ -48,12 +50,16 @@ $msg = $session->msg();
                <td class="text-center"><?php echo $sale['date']; ?></td>
                <td class="text-center">
                   <div class="btn-group">
-                     <a href="edit_withdrawal.php?id=<?php echo (int)$sale['id'];?>" class="btn btn-warning btn-xs"  title="Edit" data-toggle="tooltip">
-                       <span class="glyphicon glyphicon-edit"></span>
-                     </a>
-                     <a href="delete_withdrawal.php?id=<?php echo (int)$sale['id'];?>" class="btn btn-danger btn-xs"  title="Hapus" data-toggle="tooltip">
-                       <span class="glyphicon glyphicon-trash"></span>
-                     </a>
+                     <?php if(role_can_action('transaksi','update')): ?>
+                       <a href="edit_withdrawal.php?id=<?php echo (int)$sale['id'];?>" class="btn btn-warning btn-xs"  title="Edit" data-toggle="tooltip">
+                         <span class="glyphicon glyphicon-edit"></span>
+                       </a>
+                     <?php endif; ?>
+                     <?php if(role_can_action('transaksi','delete')): ?>
+                       <a href="delete_withdrawal.php?id=<?php echo (int)$sale['id'];?>" class="btn btn-danger btn-xs"  title="Hapus" data-toggle="tooltip">
+                         <span class="glyphicon glyphicon-trash"></span>
+                       </a>
+                     <?php endif; ?>
                   </div>
                </td>
              </tr>

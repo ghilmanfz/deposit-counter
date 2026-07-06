@@ -3,7 +3,7 @@ $page_title = 'Laporan Pengambilan';
 $results = '';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
-   page_require_level(3);
+   require_permission('laporan','print');
 ?>
 <?php
   if(isset($_POST['submit'])){

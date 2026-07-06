@@ -2,7 +2,7 @@
   $page_title = 'Data Barang Titipan';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
-   page_require_level(2);
+   require_permission('barang','view');
   $products = join_product_table();
   $msg = $session->msg();
 ?>
@@ -14,9 +14,11 @@
     <div class="col-md-12">
       <div class="panel panel-default">
         <div class="panel-heading clearfix">
-         <div class="pull-right">
-           <a href="add_product.php" class="btn btn-primary">Tambah Barang</a>
-         </div>
+         <?php if(role_can_action('barang','create')): ?>
+           <div class="pull-right">
+             <a href="add_product.php" class="btn btn-primary">Tambah Barang</a>
+           </div>
+         <?php endif; ?>
         </div>
         <div class="panel-body">
           <table class="table table-bordered">
@@ -78,12 +80,16 @@
                 <td class="text-center"> <?php echo !empty($product['last_out_date']) ? read_date($product['last_out_date']) : '-'; ?></td>
                 <td class="text-center">
                   <div class="btn-group">
-                    <a href="edit_product.php?id=<?php echo (int)$product['id'];?>" class="btn btn-info btn-xs"  title="Edit" data-toggle="tooltip">
-                      <span class="glyphicon glyphicon-edit"></span>
-                    </a>
-                    <a href="delete_product.php?id=<?php echo (int)$product['id'];?>" class="btn btn-danger btn-xs"  title="Hapus" data-toggle="tooltip">
-                      <span class="glyphicon glyphicon-trash"></span>
-                    </a>
+                    <?php if(role_can_action('barang','update')): ?>
+                      <a href="edit_product.php?id=<?php echo (int)$product['id'];?>" class="btn btn-info btn-xs"  title="Edit" data-toggle="tooltip">
+                        <span class="glyphicon glyphicon-edit"></span>
+                      </a>
+                    <?php endif; ?>
+                    <?php if(role_can_action('barang','delete')): ?>
+                      <a href="delete_product.php?id=<?php echo (int)$product['id'];?>" class="btn btn-danger btn-xs"  title="Hapus" data-toggle="tooltip">
+                        <span class="glyphicon glyphicon-trash"></span>
+                      </a>
+                    <?php endif; ?>
                   </div>
                 </td>
               </tr>

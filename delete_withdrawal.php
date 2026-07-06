@@ -1,7 +1,7 @@
 <?php
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
-  page_require_level(3);
+  require_permission('transaksi','delete');
 ?>
 <?php
   $d_sale = find_by_id('withdrawals',(int)$_GET['id']);

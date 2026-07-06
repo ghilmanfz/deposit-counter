@@ -1,13 +1,14 @@
 <?php
   $page_title = 'Penagihan';
   require_once('includes/load.php');
-  page_require_level(4);
+  require_permission('penagihan','view');
   ensure_consignment_tables();
 
   $user = current_user();
   $client_view = is_client_user($user);
 
   if(!$client_view && isset($_POST['save_storage_rate'])){
+    require_permission('penagihan','process');
     $rate = (float)$_POST['storage_rate'];
     if($rate < 0){ $rate = 0; }
     set_setting('storage_rate_per_crate_month', $rate);
@@ -26,7 +27,7 @@
   </div>
 </div>
 
-<?php if(!$client_view): ?>
+<?php if(!$client_view && role_can_action('penagihan','process')): ?>
 <div class="row">
   <div class="col-md-12">
     <div class="panel panel-info">
@@ -57,7 +58,7 @@
           <span class="glyphicon glyphicon-list-alt"></span>
           <span><?php echo $client_view ? 'Tagihan Saya' : 'Daftar Penagihan'; ?></span>
         </strong>
-        <?php if(!$client_view): ?>
+        <?php if(!$client_view && role_can_action('penagihan','create')): ?>
         <div class="pull-right">
           <a href="add_billing.php" class="btn btn-primary">Tambah Tagihan</a>
         </div>
@@ -107,21 +108,25 @@
               </td>
               <td class="text-center">
                 <div class="btn-group">
-                  <a href="print_invoice.php?id=<?php echo (int)$billing['id']; ?>" class="btn btn-info btn-xs" title="Cetak Invoice" data-toggle="tooltip">
-                    <span class="glyphicon glyphicon-print"></span>
-                  </a>
-                  <?php if(!$client_view): ?>
-                  <a href="edit_billing.php?id=<?php echo (int)$billing['id']; ?>" class="btn btn-warning btn-xs" title="Edit Tagihan" data-toggle="tooltip">
-                    <span class="glyphicon glyphicon-edit"></span>
-                  </a>
-                  <?php if($billing['status'] !== 'lunas'): ?>
-                  <a href="mark_billing_paid.php?id=<?php echo (int)$billing['id']; ?>" class="btn btn-success btn-xs" title="Tandai Lunas" data-toggle="tooltip">
-                    <span class="glyphicon glyphicon-ok"></span>
-                  </a>
+                  <?php if(role_can_action('penagihan','print')): ?>
+                    <a href="print_invoice.php?id=<?php echo (int)$billing['id']; ?>" class="btn btn-info btn-xs" title="Cetak Invoice" data-toggle="tooltip">
+                      <span class="glyphicon glyphicon-print"></span>
+                    </a>
                   <?php endif; ?>
-                  <a href="delete_billing.php?id=<?php echo (int)$billing['id']; ?>" class="btn btn-danger btn-xs" title="Hapus Tagihan" data-toggle="tooltip">
-                    <span class="glyphicon glyphicon-trash"></span>
-                  </a>
+                  <?php if(!$client_view && role_can_action('penagihan','update')): ?>
+                    <a href="edit_billing.php?id=<?php echo (int)$billing['id']; ?>" class="btn btn-warning btn-xs" title="Edit Tagihan" data-toggle="tooltip">
+                      <span class="glyphicon glyphicon-edit"></span>
+                    </a>
+                  <?php endif; ?>
+                  <?php if(!$client_view && $billing['status'] !== 'lunas' && role_can_action('penagihan','process')): ?>
+                    <a href="mark_billing_paid.php?id=<?php echo (int)$billing['id']; ?>" class="btn btn-success btn-xs" title="Tandai Lunas" data-toggle="tooltip">
+                      <span class="glyphicon glyphicon-ok"></span>
+                    </a>
+                  <?php endif; ?>
+                  <?php if(!$client_view && role_can_action('penagihan','delete')): ?>
+                    <a href="delete_billing.php?id=<?php echo (int)$billing['id']; ?>" class="btn btn-danger btn-xs" title="Hapus Tagihan" data-toggle="tooltip">
+                      <span class="glyphicon glyphicon-trash"></span>
+                    </a>
                   <?php endif; ?>
                 </div>
               </td>

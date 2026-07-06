@@ -2,11 +2,12 @@
   $page_title = 'Media';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
-  page_require_level(2);
+  require_permission('media','view');
 ?>
 <?php $media_files = find_all('media');?>
 <?php
   if(isset($_POST['submit'])) {
+  require_permission('media','create');
   $photo = new Media();
   $photo->upload($_FILES['file_upload']);
     if($photo->process_media()){
@@ -31,6 +32,7 @@
           <div class="panel-heading clearfix">
             <span class="glyphicon glyphicon-camera"></span>
             <span>Daftar Foto</span>
+            <?php if(role_can_action('media','create')): ?>
             <div class="pull-right">
               <form class="form-inline" action="media.php" method="POST" enctype="multipart/form-data">
               <div class="form-group">
@@ -47,6 +49,7 @@
               </div>
              </form>
             </div>
+            <?php endif; ?>
           </div>
           <div class="panel-body">
             <table class="table">
@@ -73,9 +76,11 @@
                   <?php echo $media_file['file_type'];?>
                 </td>
                 <td class="text-center">
-                  <a href="delete_media.php?id=<?php echo (int) $media_file['id'];?>" class="btn btn-danger btn-xs"  title="Edit">
-                    <span class="glyphicon glyphicon-trash"></span>
-                  </a>
+                  <?php if(role_can_action('media','delete')): ?>
+                    <a href="delete_media.php?id=<?php echo (int) $media_file['id'];?>" class="btn btn-danger btn-xs"  title="Hapus">
+                      <span class="glyphicon glyphicon-trash"></span>
+                    </a>
+                  <?php endif; ?>
                 </td>
                </tr>
               <?php endforeach;?>

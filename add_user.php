@@ -3,7 +3,7 @@
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
   page_require_level(1);
-  $groups = find_all('user_groups');
+  $groups = find_by_sql("SELECT * FROM user_groups WHERE group_status='1' ORDER BY group_level ASC");
 ?>
 <?php
   if(isset($_POST['add_user'])){

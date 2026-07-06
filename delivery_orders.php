@@ -1,7 +1,7 @@
 <?php
   $page_title = 'Surat Jalan';
   require_once('includes/load.php');
-  page_require_level(4);
+  require_permission('surat_jalan','view');
   ensure_consignment_tables();
 
   $user = current_user();
@@ -61,9 +61,12 @@
               <td class="text-center"><?php echo ((int)$order['stock_processed'] === 1) ? 'Sudah diproses' : 'Belum dipotong'; ?></td>
               <td><?php echo !empty($order['note']) ? remove_junk($order['note']) : '-'; ?></td>
               <td class="text-center">
-                <a href="print_surat_jalan.php?id=<?php echo (int)$order['id']; ?>" class="btn btn-info btn-xs" title="Cetak Surat Jalan" data-toggle="tooltip">
-                  <span class="glyphicon glyphicon-print"></span>
-                </a>
+                <?php $can_print_order = role_can_action('surat_jalan','print') && ($order['movement_type'] !== 'out' || (int)$order['stock_processed'] === 1 || role_can_action('surat_jalan','process')); ?>
+                <?php if($can_print_order): ?>
+                  <a href="print_surat_jalan.php?id=<?php echo (int)$order['id']; ?>" class="btn btn-info btn-xs" title="Cetak Surat Jalan" data-toggle="tooltip">
+                    <span class="glyphicon glyphicon-print"></span>
+                  </a>
+                <?php endif; ?>
               </td>
             </tr>
             <?php endforeach; ?>

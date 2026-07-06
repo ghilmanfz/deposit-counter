@@ -1,7 +1,7 @@
 <?php
   $page_title = 'Edit Akun';
   require_once('includes/load.php');
-  page_require_level(4);
+  require_login();
   $msg = $session->msg();
 ?>
 <?php

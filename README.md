@@ -33,12 +33,20 @@ Proyek ini dikembangkan dari struktur OSWA-INV dan disesuaikan menjadi sistem pe
 
 ## Hak Akses
 
-| Level | Role | Keterangan |
-| --- | --- | --- |
-| 1 | Admin | Akses penuh ke user, kategori, satuan, barang, transaksi, tagihan, surat jalan, dan laporan. |
-| 2 | Special | Akses operasional lanjutan sesuai menu yang diizinkan. |
-| 3 | User/Staff | Akses operasional gudang dan laporan. |
-| 4 | Client | Akses read-only untuk barang, stok, tagihan, surat jalan, dan dapat membuat request pengambilan. |
+Sistem memakai RBAC berbasis role. Admin selalu memiliki akses penuh. Pelanggan adalah role khusus client. Role staf internal seperti Manajer, Kasir, dan Gudang dapat dibuat dari menu Manajemen User -> Kelola Hak Akses.
+
+Hak akses staf internal dapat diatur per modul dan per aksi:
+
+| Aksi | Keterangan |
+| --- | --- |
+| Lihat | Membuka halaman dan melihat data. |
+| Tambah | Membuat data baru. |
+| Ubah | Mengedit data yang sudah ada. |
+| Hapus | Menghapus data. |
+| Cetak | Mencetak invoice, surat jalan, atau laporan. |
+| Proses | Approve/reject request, proses stok, atau tandai status. |
+
+Modul manajemen user, manajemen role/hak akses, kategori barang, konten publikasi, dan landing page tetap khusus Admin.
 
 ## Kebutuhan Sistem
 

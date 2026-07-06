@@ -2,7 +2,7 @@
   $page_title = 'Profil Saya';
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
-   page_require_level(4);
+   require_login();
 ?>
   <?php
   $current_user = current_user();

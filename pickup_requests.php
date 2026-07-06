@@ -1,7 +1,7 @@
 <?php
   $page_title = 'Request Pengambilan Barang';
   require_once('includes/load.php');
-  page_require_level(4);
+  require_permission('pickup','view');
 
   $user = current_user();
   $client_view = is_client_user($user);
@@ -15,7 +15,7 @@
     <div class="panel panel-default">
       <div class="panel-heading clearfix">
         <strong><span class="glyphicon glyphicon-send"></span> <span><?php echo $client_view ? 'Request Pengambilan Barang Saya' : 'Request Pengambilan Barang'; ?></span></strong>
-        <?php if($client_view): ?>
+        <?php if($client_view && role_can_action('pickup','create')): ?>
         <div class="pull-right"><a href="add_pickup_request.php" class="btn btn-primary">Buat Request</a></div>
         <?php endif; ?>
       </div>
@@ -56,11 +56,12 @@
               <td><?php echo !empty($req['admin_note']) ? remove_junk($req['admin_note']) : '-'; ?></td>
               <td class="text-center">
                 <div class="btn-group">
-                  <?php if(!$client_view && $req['status'] === 'pending'): ?>
+                  <?php if(!$client_view && $req['status'] === 'pending' && role_can_action('pickup','process')): ?>
                     <a href="process_pickup_request.php?action=approve&id=<?php echo (int)$req['id']; ?>" class="btn btn-success btn-xs" title="Approve" data-toggle="tooltip"><span class="glyphicon glyphicon-ok"></span></a>
                     <a href="reject_pickup_request.php?id=<?php echo (int)$req['id']; ?>" class="btn btn-danger btn-xs" title="Reject" data-toggle="tooltip"><span class="glyphicon glyphicon-remove"></span></a>
                   <?php endif; ?>
-                  <?php if(!empty($req['delivery_id'])): ?>
+                  <?php $can_print_request_order = !empty($req['delivery_id']) && role_can_action('surat_jalan','print') && ((int)$req['stock_processed'] === 1 || role_can_action('surat_jalan','process')); ?>
+                  <?php if($can_print_request_order): ?>
                     <a href="print_surat_jalan.php?id=<?php echo (int)$req['delivery_id']; ?>" class="btn btn-info btn-xs" title="Cetak Surat Jalan" data-toggle="tooltip"><span class="glyphicon glyphicon-print"></span></a>
                   <?php endif; ?>
                 </div>

@@ -1,7 +1,7 @@
 <?php
   $page_title = 'Tolak Request Pengambilan';
   require_once('includes/load.php');
-  page_require_level(2);
+  require_permission('pickup','process');
   $request = find_pickup_request_details(isset($_GET['id']) ? (int)$_GET['id'] : 0);
   if(!$request || $request['status'] !== 'pending'){
     $session->msg('d','Request tidak ditemukan atau sudah diproses.');

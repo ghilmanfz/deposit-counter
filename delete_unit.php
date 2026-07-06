@@ -1,6 +1,6 @@
 <?php
   require_once('includes/load.php');
-  page_require_level(2);
+  require_permission('satuan','delete');
   $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
   if(delete_unit_safe($id)){
     $session->msg('s','Satuan berhasil dihapus.');

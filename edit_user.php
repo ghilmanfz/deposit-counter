@@ -6,10 +6,21 @@
 ?>
 <?php
   $e_user = find_by_id('users',(int)$_GET['id']);
-  $groups  = find_all('user_groups');
+  $groups  = find_by_sql("SELECT * FROM user_groups WHERE group_status='1' ORDER BY group_level ASC");
   if(!$e_user){
     $session->msg("d","ID user tidak ditemukan.");
     redirect('users.php');
+  }
+  $current_group = find_by_groupLevel((int)$e_user['user_level']);
+  $current_group_in_list = false;
+  foreach($groups as $group){
+    if((int)$group['group_level'] === (int)$e_user['user_level']){
+      $current_group_in_list = true;
+      break;
+    }
+  }
+  if($current_group && !$current_group_in_list){
+    $groups[] = $current_group;
   }
 ?>
 
@@ -91,7 +102,7 @@ if(isset($_POST['update-pass'])) {
               <label for="level">Role User</label>
                 <select class="form-control" name="level">
                   <?php foreach ($groups as $group ):?>
-                   <option <?php if($group['group_level'] === $e_user['user_level']) echo 'selected="selected"';?> value="<?php echo $group['group_level'];?>"><?php echo ucwords($group['group_name']);?></option>
+                   <option <?php if((int)$group['group_level'] === (int)$e_user['user_level']) echo 'selected="selected"';?> value="<?php echo $group['group_level'];?>"><?php echo ucwords($group['group_name']);?></option>
                 <?php endforeach;?>
                 </select>
             </div>

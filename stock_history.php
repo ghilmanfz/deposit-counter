@@ -1,7 +1,11 @@
 <?php
   $page_title = 'Riwayat Stok';
   require_once('includes/load.php');
-  page_require_level(4);
+  if(is_client_user()){
+    require_permission('barang_saya','view');
+  } else {
+    require_permission('transaksi','view');
+  }
 
   $user = current_user();
   $client_view = is_client_user($user);

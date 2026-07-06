@@ -7,8 +7,8 @@
 
   $user = current_user();
   $name = isset($user['name']) ? remove_junk(ucfirst($user['name'])) : 'User';
-  $lvl  = isset($user['user_level']) ? (int)$user['user_level'] : 0;
-  $role_name = $lvl === 2 ? 'Special User' : ($lvl === 3 ? 'User Staff' : 'Staff');
+  $role = $user ? find_by_groupLevel((int)$user['user_level']) : null;
+  $role_name = $role ? ucwords($role['group_name']) : 'Staff';
 
   $c_product    = count_by_id('products');
   $c_withdrawal = count_by_id('withdrawals');
@@ -32,7 +32,7 @@
 
 <!-- Stat Cards (hanya tampil untuk menu yang bisa diakses) -->
 <div class="row">
-  <?php if(menu_can(2)): ?>
+  <?php if(role_can('barang')): ?>
   <div class="col-md-3 col-sm-6">
     <a href="product.php">
       <div class="stat-card-horizontal">
@@ -42,7 +42,8 @@
     </a>
   </div>
   <?php endif; ?>
-  <?php if(menu_can(3)): ?>
+  <?php if(role_can('transaksi')): ?>
+  <?php if(role_can('surat_jalan')): ?>
   <div class="col-md-3 col-sm-6">
     <a href="withdrawals.php">
       <div class="stat-card-horizontal">
@@ -60,6 +61,8 @@
       </div>
     </a>
   </div>
+  <?php endif; ?>
+  <?php if(role_can('penagihan')): ?>
   <div class="col-md-3 col-sm-6">
     <a href="billings.php">
       <div class="stat-card-horizontal">
@@ -68,6 +71,7 @@
       </div>
     </a>
   </div>
+  <?php endif; ?>
 </div>
 
 <!-- Aksi Cepat & Surat Jalan Terbaru -->
@@ -78,22 +82,27 @@
         <h3 class="custom-panel-title"><i class="glyphicon glyphicon-flash"></i> Aksi Cepat</h3>
       </div>
       <div style="display:flex; flex-direction:column; gap:14px;">
-        <?php if(menu_can(2)): ?>
+        <?php if(role_can_action('barang','create')): ?>
         <a href="add_product.php" class="btn btn-primary btn-block" style="text-align:left;"><i class="glyphicon glyphicon-plus"></i> &nbsp;Tambah Barang Titipan</a>
         <?php endif; ?>
-        <?php if(menu_can(3)): ?>
+        <?php if(role_can_action('transaksi','create')): ?>
         <a href="add_withdrawal.php" class="btn btn-success btn-block" style="text-align:left;"><i class="glyphicon glyphicon-transfer"></i> &nbsp;Tambah Pengambilan Barang</a>
         <?php endif; ?>
+        <?php if(role_can('surat_jalan')): ?>
         <a href="delivery_orders.php" class="btn btn-default btn-block" style="text-align:left;"><i class="glyphicon glyphicon-file"></i> &nbsp;Lihat Surat Jalan</a>
+        <?php endif; ?>
+        <?php if(role_can('penagihan')): ?>
         <a href="billings.php" class="btn btn-default btn-block" style="text-align:left;"><i class="glyphicon glyphicon-list-alt"></i> &nbsp;Lihat Penagihan</a>
+        <?php endif; ?>
       </div>
     </div>
   </div>
+  <?php if(role_can('surat_jalan')): ?>
   <div class="col-md-7">
     <div class="custom-panel">
       <div class="custom-panel-header">
         <h3 class="custom-panel-title"><i class="glyphicon glyphicon-time"></i> Surat Jalan Terbaru</h3>
-        <a href="delivery_orders.php" class="custom-panel-link">Semua</a>
+        <?php if(role_can('surat_jalan')): ?><a href="delivery_orders.php" class="custom-panel-link">Semua</a><?php endif; ?>
       </div>
       <?php if(empty($recent_do)): ?>
         <p class="text-muted">Belum ada surat jalan.</p>
@@ -121,6 +130,7 @@
       <?php endif; ?>
     </div>
   </div>
+  <?php endif; ?>
 </div>
 
 <!-- Pengumuman -->
