@@ -66,109 +66,151 @@
   }
   $map = role_action_permissions_map();
   $msg = $session->msg();
+  $total_roles = count($roles);
+  $staff_role_count = count($staff_roles);
+  $module_count = count($modules) - 1;
 ?>
 <?php include_once('layouts/header.php'); ?>
-<div class="row"><div class="col-md-12"><?php echo display_msg($msg); ?></div></div>
+<div class="access-control-page">
+  <div class="row"><div class="col-md-12"><?php echo display_msg($msg); ?></div></div>
 
-<div class="row">
-  <div class="col-md-12">
-    <div class="panel panel-default">
-      <div class="panel-heading"><strong><span class="glyphicon glyphicon-user"></span> Kelola Role</strong></div>
-      <div class="panel-body">
-        <p class="text-muted"><strong>Admin</strong> dan <strong>Pelanggan</strong> adalah role bawaan. Role baru otomatis menjadi role staf internal dan dapat diberi hak akses detail di matriks bawah.</p>
-        <table class="table table-striped">
+  <div class="access-summary-grid">
+    <div class="access-summary-item">
+      <span>Total Role</span>
+      <strong><?php echo (int)$total_roles; ?></strong>
+    </div>
+    <div class="access-summary-item">
+      <span>Role Staf</span>
+      <strong><?php echo (int)$staff_role_count; ?></strong>
+    </div>
+    <div class="access-summary-item">
+      <span>Modul Diatur</span>
+      <strong><?php echo (int)$module_count; ?></strong>
+    </div>
+  </div>
+
+  <div class="access-panel">
+    <div class="access-panel-header">
+      <div>
+        <h3><span class="glyphicon glyphicon-user"></span> Kelola Role</h3>
+        <p>Role staf baru dapat langsung diberi hak akses detail pada matriks di bawah.</p>
+      </div>
+      <form method="post" action="access_control.php" class="access-add-role-form">
+        <input type="text" class="form-control" name="role_name" placeholder="cth: Manajer, Kasir, Gudang">
+        <button type="submit" name="add_role" class="btn btn-primary">+ Tambah Role</button>
+      </form>
+    </div>
+
+    <div class="access-role-table-wrap">
+      <?php foreach($roles as $role): ?>
+        <form id="access-role-form-<?php echo (int)$role['id']; ?>" method="post" action="access_control.php">
+          <input type="hidden" name="role_id" value="<?php echo (int)$role['id']; ?>">
+        </form>
+      <?php endforeach; ?>
+
+      <table class="table access-role-table">
+        <thead>
+          <tr>
+            <th>Nama Role</th>
+            <th class="text-center">Level</th>
+            <th class="text-center">User</th>
+            <th>Status</th>
+            <th class="text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach($roles as $role): ?>
+            <?php $level = (int)$role['group_level']; $protected = role_is_protected($level); $used = role_user_count($level); ?>
+            <?php $role_form_id = 'access-role-form-'.(int)$role['id']; ?>
+            <tr>
+              <td>
+                <input type="text" class="form-control input-sm access-role-name" form="<?php echo $role_form_id; ?>" name="role_name" value="<?php echo htmlspecialchars(ucwords($role['group_name'])); ?>">
+              </td>
+              <td class="text-center">
+                <span class="access-level-number"><?php echo $level; ?></span>
+                <?php if($level === USER_LEVEL_ADMIN): ?><span class="access-role-badge admin">Admin</span><?php endif; ?>
+                <?php if($level === USER_LEVEL_CLIENT): ?><span class="access-role-badge client">Client</span><?php endif; ?>
+              </td>
+              <td class="text-center"><span class="access-user-count"><?php echo $used; ?></span></td>
+              <td>
+                <select name="role_status" form="<?php echo $role_form_id; ?>" class="form-control input-sm access-status-select">
+                  <option value="1" <?php echo (string)$role['group_status'] === '1' ? 'selected' : ''; ?>>Aktif</option>
+                  <option value="0" <?php echo (string)$role['group_status'] === '0' ? 'selected' : ''; ?>>Nonaktif</option>
+                </select>
+              </td>
+              <td class="text-center">
+                <div class="access-action-group">
+                  <button type="submit" form="<?php echo $role_form_id; ?>" name="rename_role" class="btn btn-warning btn-xs">Simpan</button>
+                  <?php if(!$protected): ?>
+                    <button type="submit" form="<?php echo $role_form_id; ?>" name="delete_role" class="btn btn-danger btn-xs" onclick="return confirm('Hapus role ini?');" <?php echo $used > 0 ? 'disabled title="Masih dipakai user"' : ''; ?>>Hapus</button>
+                  <?php endif; ?>
+                </div>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="access-panel">
+    <div class="access-panel-header">
+      <div>
+        <h3><span class="glyphicon glyphicon-lock"></span> Hak Akses Staf per Role</h3>
+        <p>Admin selalu penuh. Manajemen user, kategori, konten, dan landing page tetap khusus Admin.</p>
+      </div>
+      <div class="access-legend">
+        <span><i class="access-dot on"></i> Diizinkan</span>
+        <span><i class="access-dot off"></i> Tidak aktif</span>
+      </div>
+    </div>
+
+    <form method="post" action="access_control.php">
+      <div class="access-matrix-wrap">
+        <table class="table access-matrix-table">
           <thead>
             <tr>
-              <th>Nama Role</th>
-              <th class="text-center">Level</th>
-              <th class="text-center">Jml User</th>
-              <th class="text-center">Status</th>
-              <th class="text-center" style="width:220px;">Aksi</th>
+              <th class="access-col-module">Modul</th>
+              <th class="access-col-action">Aksi</th>
+              <?php foreach($staff_roles as $role): ?>
+                <th class="text-center access-col-role"><?php echo htmlspecialchars(ucwords($role['group_name'])); ?></th>
+              <?php endforeach; ?>
             </tr>
           </thead>
           <tbody>
-            <?php foreach($roles as $role): ?>
-              <?php $level = (int)$role['group_level']; $protected = role_is_protected($level); $used = role_user_count($level); ?>
-              <tr>
-                <form method="post" action="access_control.php">
-                  <input type="hidden" name="role_id" value="<?php echo (int)$role['id']; ?>">
-                  <td><input type="text" class="form-control input-sm" name="role_name" value="<?php echo htmlspecialchars(ucwords($role['group_name'])); ?>"></td>
-                  <td class="text-center">
-                    <?php echo $level; ?>
-                    <?php if($level === USER_LEVEL_ADMIN): ?><span class="label label-primary">Admin</span><?php endif; ?>
-                    <?php if($level === USER_LEVEL_CLIENT): ?><span class="label label-info">Client</span><?php endif; ?>
+            <?php foreach($modules as $module_key => $module): ?>
+              <?php if($module_key === 'barang_saya'){ continue; } ?>
+              <?php foreach($module['actions'] as $index => $action_key): ?>
+              <tr class="<?php echo $index === 0 ? 'access-module-start' : ''; ?>">
+                <?php if($index === 0): ?>
+                  <td class="access-module-cell" rowspan="<?php echo count($module['actions']); ?>">
+                    <strong><?php echo htmlspecialchars($module['label']); ?></strong>
+                    <small><?php echo count($module['actions']); ?> aksi</small>
                   </td>
-                  <td class="text-center"><?php echo $used; ?></td>
-                  <td class="text-center">
-                    <select name="role_status" class="form-control input-sm">
-                      <option value="1" <?php echo (string)$role['group_status'] === '1' ? 'selected' : ''; ?>>Aktif</option>
-                      <option value="0" <?php echo (string)$role['group_status'] === '0' ? 'selected' : ''; ?>>Nonaktif</option>
-                    </select>
+                <?php endif; ?>
+                <td class="access-action-cell">
+                  <span class="access-action-badge"><?php echo htmlspecialchars($actions[$action_key]); ?></span>
+                </td>
+                <?php foreach($staff_roles as $role): ?>
+                  <?php $level = (int)$role['group_level']; $checked = isset($map[$level][$module_key][$action_key]) && (int)$map[$level][$module_key][$action_key] === 1; ?>
+                  <td class="text-center access-check-cell">
+                    <label class="access-check">
+                      <input type="checkbox" name="perm[<?php echo $level; ?>][<?php echo htmlspecialchars($module_key); ?>][<?php echo htmlspecialchars($action_key); ?>]" value="1" <?php echo $checked ? 'checked' : ''; ?>>
+                      <span></span>
+                    </label>
                   </td>
-                  <td class="text-center">
-                    <button type="submit" name="rename_role" class="btn btn-warning btn-xs">Simpan</button>
-                    <?php if(!$protected): ?>
-                      <button type="submit" name="delete_role" class="btn btn-danger btn-xs" onclick="return confirm('Hapus role ini?');" <?php echo $used > 0 ? 'disabled title="Masih dipakai user"' : ''; ?>>Hapus</button>
-                    <?php endif; ?>
-                  </td>
-                </form>
+                <?php endforeach; ?>
               </tr>
+              <?php endforeach; ?>
             <?php endforeach; ?>
           </tbody>
         </table>
-        <form method="post" action="access_control.php" class="form-inline" style="margin-top:10px;">
-          <div class="form-group">
-            <label>Tambah Role Staf:</label>
-            <input type="text" class="form-control" name="role_name" placeholder="cth: Manajer, Kasir, Gudang">
-          </div>
-          <button type="submit" name="add_role" class="btn btn-primary">+ Tambah Role</button>
-        </form>
       </div>
-    </div>
-  </div>
-</div>
-
-<div class="row">
-  <div class="col-md-12">
-    <div class="panel panel-default">
-      <div class="panel-heading"><strong><span class="glyphicon glyphicon-lock"></span> Hak Akses Staf per Role</strong></div>
-      <div class="panel-body">
-        <p class="text-muted">Centang aksi yang boleh dilakukan tiap role staf internal. <strong>Admin</strong> selalu penuh. Manajemen user, role, kategori, konten, dan landing page tetap khusus Admin.</p>
-        <form method="post" action="access_control.php">
-          <table class="table table-striped table-bordered">
-            <thead>
-              <tr>
-                <th style="width:220px;">Modul</th>
-                <th style="width:120px;">Aksi</th>
-                <?php foreach($staff_roles as $role): ?>
-                  <th class="text-center"><?php echo htmlspecialchars(ucwords($role['group_name'])); ?></th>
-                <?php endforeach; ?>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach($modules as $module_key => $module): ?>
-                <?php if($module_key === 'barang_saya'){ continue; } ?>
-                <?php foreach($module['actions'] as $index => $action_key): ?>
-                <tr>
-                  <?php if($index === 0): ?>
-                    <td rowspan="<?php echo count($module['actions']); ?>"><strong><?php echo htmlspecialchars($module['label']); ?></strong></td>
-                  <?php endif; ?>
-                  <td><?php echo htmlspecialchars($actions[$action_key]); ?></td>
-                  <?php foreach($staff_roles as $role): ?>
-                    <?php $level = (int)$role['group_level']; $checked = isset($map[$level][$module_key][$action_key]) && (int)$map[$level][$module_key][$action_key] === 1; ?>
-                    <td class="text-center">
-                      <input type="checkbox" name="perm[<?php echo $level; ?>][<?php echo htmlspecialchars($module_key); ?>][<?php echo htmlspecialchars($action_key); ?>]" value="1" <?php echo $checked ? 'checked' : ''; ?>>
-                    </td>
-                  <?php endforeach; ?>
-                </tr>
-                <?php endforeach; ?>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-          <button type="submit" name="save_access" class="btn btn-primary">Simpan Hak Akses</button>
-        </form>
+      <div class="access-save-bar">
+        <span><?php echo (int)$staff_role_count; ?> role staf dalam matriks</span>
+        <button type="submit" name="save_access" class="btn btn-primary">Simpan Hak Akses</button>
       </div>
-    </div>
+    </form>
   </div>
 </div>
 <?php include_once('layouts/footer.php'); ?>
