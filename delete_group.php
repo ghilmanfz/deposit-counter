@@ -1,15 +1,15 @@
 <?php
   require_once('includes/load.php');
-  // Checkin What level user has permission to view this page
-   page_require_level(1);
-?>
-<?php
-  $delete_id = delete_by_id('user_groups',(int)$_GET['id']);
-  if($delete_id){
-      $session->msg("s","Group has been deleted.");
-      redirect('group.php');
-  } else {
-      $session->msg("d","Group deletion failed Or Missing Prm.");
-      redirect('group.php');
-  }
+  page_require_level(1);
+  $result = delete_role(isset($_GET['id']) ? (int)$_GET['id'] : 0);
+  $messages = array(
+    'ok'        => array('s','Role berhasil dihapus.'),
+    'protected' => array('d','Role Admin dan Pelanggan tidak dapat dihapus.'),
+    'inuse'     => array('d','Role masih dipakai user.'),
+    'notfound'  => array('d','Role tidak ditemukan.'),
+    'fail'      => array('d','Gagal menghapus role.')
+  );
+  $message = isset($messages[$result]) ? $messages[$result] : array('d','Gagal menghapus role.');
+  $session->msg($message[0], $message[1]);
+  redirect('access_control.php', false);
 ?>

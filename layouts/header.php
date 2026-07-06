@@ -30,11 +30,8 @@
 
       // User Level Name
       $lvl = isset($user['user_level']) ? $user['user_level'] : '';
-      $lvl_name = "User";
-      if($lvl === '1') $lvl_name = "Super Admin";
-      if($lvl === '2') $lvl_name = "Special User";
-      if($lvl === '3') $lvl_name = "User Staff";
-      if($lvl === '4') $lvl_name = "Client";
+      $lvl_group = find_by_groupLevel($lvl);
+      $lvl_name = $lvl_group ? ucwords($lvl_group['group_name']) : 'User';
 
       // Indonesian Date Format
       $hari = array("Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu");
@@ -92,17 +89,13 @@
           <!-- admin menu -->
         <?php include_once('admin_menu.php');?>
 
-        <?php elseif($user['user_level'] === '2'): ?>
-          <!-- Special user -->
-        <?php include_once('special_menu.php');?>
-
-        <?php elseif($user['user_level'] === '3'): ?>
-          <!-- User menu -->
-        <?php include_once('user_menu.php');?>
-
         <?php elseif($user['user_level'] === '4'): ?>
           <!-- Client menu -->
         <?php include_once('client_menu.php');?>
+
+        <?php else: ?>
+          <!-- Staff menu dinamis -->
+        <?php include_once('staff_menu.php');?>
 
         <?php endif;?>
       </div>

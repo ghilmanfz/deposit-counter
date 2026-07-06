@@ -11,7 +11,7 @@
       <span>Manajemen User</span>
     </a>
     <ul class="nav submenu">
-      <li><a href="group.php">Kelola Grup</a> </li>
+      <li><a href="access_control.php">Kelola Hak Akses</a> </li>
       <li><a href="users.php">Kelola User</a> </li>
    </ul>
   </li>
