@@ -275,6 +275,214 @@ function tableExists($table){
     return ($user && (int)$user['user_level'] <= (int)$required_level);
   }
 
+  /*--------------------------------------------------------------*/
+  /* Action-level RBAC helpers
+  /*--------------------------------------------------------------*/
+  function permission_actions(){
+    return array(
+      'view'    => 'Lihat',
+      'create'  => 'Tambah',
+      'update'  => 'Ubah',
+      'delete'  => 'Hapus',
+      'print'   => 'Cetak',
+      'process' => 'Proses'
+    );
+  }
+
+  function access_permission_modules(){
+    return array(
+      'satuan' => array(
+        'label' => 'Satuan Barang',
+        'actions' => array('view','create','update','delete')
+      ),
+      'barang' => array(
+        'label' => 'Barang Titipan',
+        'actions' => array('view','create','update','delete')
+      ),
+      'media' => array(
+        'label' => 'Media',
+        'actions' => array('view','create','delete')
+      ),
+      'transaksi' => array(
+        'label' => 'Transaksi Barang',
+        'actions' => array('view','create','update','delete')
+      ),
+      'pickup' => array(
+        'label' => 'Request Pengambilan',
+        'actions' => array('view','create','process')
+      ),
+      'penagihan' => array(
+        'label' => 'Penagihan',
+        'actions' => array('view','create','update','delete','print','process')
+      ),
+      'surat_jalan' => array(
+        'label' => 'Surat Jalan',
+        'actions' => array('view','print','process')
+      ),
+      'laporan' => array(
+        'label' => 'Laporan Barang',
+        'actions' => array('view','print')
+      ),
+      'barang_saya' => array(
+        'label' => 'Barang Saya',
+        'actions' => array('view')
+      )
+    );
+  }
+
+  function admin_only_modules(){
+    return array('kategori','konten','user_mgmt','role_mgmt','landing');
+  }
+
+  function role_is_internal_staff($level){
+    $level = (int)$level;
+    return ($level > 0 && $level !== USER_LEVEL_ADMIN && $level !== USER_LEVEL_CLIENT);
+  }
+
+  function role_is_protected($level){
+    $level = (int)$level;
+    return ($level === USER_LEVEL_ADMIN || $level === USER_LEVEL_CLIENT);
+  }
+
+  function find_all_roles(){
+    ensure_warehouse_schema();
+    return find_by_sql("SELECT * FROM user_groups ORDER BY group_level ASC");
+  }
+
+  function role_user_count($level){
+    global $db;
+    $level = (int)$level;
+    $res = $db->query("SELECT COUNT(id) AS c FROM users WHERE user_level='{$level}'");
+    $row = $res ? $db->fetch_assoc($res) : null;
+    return $row ? (int)$row['c'] : 0;
+  }
+
+  function create_role($name){
+    global $db;
+    $name = remove_junk(trim($name));
+    if($name === ''){ return false; }
+    $safe_name = $db->escape($name);
+    $dup = $db->query("SELECT id FROM user_groups WHERE group_name='{$safe_name}' LIMIT 1");
+    if($dup && $db->num_rows($dup) > 0){ return false; }
+    $res = $db->query("SELECT MAX(group_level) AS m FROM user_groups");
+    $row = $res ? $db->fetch_assoc($res) : null;
+    $next = ($row && $row['m'] !== null) ? ((int)$row['m'] + 1) : 5;
+    if($next < 5){ $next = 5; }
+    $sql = "INSERT INTO user_groups (group_name, group_level, group_status) VALUES ('{$safe_name}','{$next}','1')";
+    return $db->query($sql) ? $next : false;
+  }
+
+  function rename_role($id, $name){
+    global $db;
+    $id = (int)$id;
+    $name = remove_junk(trim($name));
+    if($id <= 0 || $name === ''){ return false; }
+    $safe_name = $db->escape($name);
+    return $db->query("UPDATE user_groups SET group_name='{$safe_name}' WHERE id='{$id}' LIMIT 1");
+  }
+
+  function set_role_status($id, $status){
+    global $db;
+    $id = (int)$id;
+    $status = ((int)$status === 1) ? 1 : 0;
+    if($id <= 0){ return false; }
+    return $db->query("UPDATE user_groups SET group_status='{$status}' WHERE id='{$id}' LIMIT 1");
+  }
+
+  function delete_role($id){
+    global $db;
+    $id = (int)$id;
+    $role = find_by_id('user_groups', $id);
+    if(!$role){ return 'notfound'; }
+    $level = (int)$role['group_level'];
+    if(role_is_protected($level)){ return 'protected'; }
+    if(role_user_count($level) > 0){ return 'inuse'; }
+    $db->query("DELETE FROM role_action_permissions WHERE role_level='{$level}'");
+    return delete_by_id('user_groups', $id) ? 'ok' : 'fail';
+  }
+
+  function permission_action_is_valid($module_key, $action_key){
+    $modules = access_permission_modules();
+    return isset($modules[$module_key]) && in_array($action_key, $modules[$module_key]['actions'], true);
+  }
+
+  function role_action_permissions_map(){
+    static $map = null;
+    global $db;
+    if($map === null){
+      ensure_warehouse_schema();
+      $map = array();
+      $res = $db->query("SELECT role_level, module_key, action_key, allowed FROM role_action_permissions");
+      if($res){
+        while($row = $db->fetch_assoc($res)){
+          $level = (int)$row['role_level'];
+          $module = $row['module_key'];
+          $action = $row['action_key'];
+          if(!isset($map[$level])){ $map[$level] = array(); }
+          if(!isset($map[$level][$module])){ $map[$level][$module] = array(); }
+          $map[$level][$module][$action] = (int)$row['allowed'];
+        }
+      }
+    }
+    return $map;
+  }
+
+  function role_can_action($module_key, $action_key, $level = null){
+    if($level === null){
+      $user = current_user();
+      $level = $user ? (int)$user['user_level'] : 0;
+    }
+    $level = (int)$level;
+    if($level === USER_LEVEL_ADMIN){ return true; }
+    if(in_array($module_key, admin_only_modules(), true)){ return false; }
+    if(!permission_action_is_valid($module_key, $action_key)){ return false; }
+    $map = role_action_permissions_map();
+    return isset($map[$level][$module_key][$action_key]) && (int)$map[$level][$module_key][$action_key] === 1;
+  }
+
+  function role_can($module_key, $level = null){
+    return role_can_action($module_key, 'view', $level);
+  }
+
+  function require_permission($module_key, $action_key = 'view'){
+    global $session;
+    if(!$session->isUserLoggedIn(true)){
+      $session->msg('d','Silakan login...');
+      redirect('index.php', false);
+    }
+    $current_user = current_user();
+    $login_level = $current_user ? find_by_groupLevel($current_user['user_level']) : null;
+    if(!$login_level){
+      $session->msg('d','Level user tidak terdaftar.');
+      redirect('home.php', false);
+    }
+    if((string)$login_level['group_status'] === '0'){
+      $session->msg('d','Role user sedang nonaktif.');
+      redirect('home.php', false);
+    }
+    if(!role_can_action($module_key, $action_key, (int)$current_user['user_level'])){
+      $session->msg('d','Anda tidak memiliki hak akses untuk aksi ini.');
+      redirect_by_user_level();
+    }
+    return true;
+  }
+
+  function require_module($module_key){
+    return require_permission($module_key, 'view');
+  }
+
+  function set_role_action_permission($level, $module_key, $action_key, $allowed){
+    global $db;
+    ensure_warehouse_schema();
+    $level = (int)$level;
+    if($level === USER_LEVEL_ADMIN || !permission_action_is_valid($module_key, $action_key)){ return false; }
+    $module_key = $db->escape($module_key);
+    $action_key = $db->escape($action_key);
+    $allowed = ((int)$allowed === 1) ? 1 : 0;
+    $sql = "INSERT INTO role_action_permissions (role_level, module_key, action_key, allowed) VALUES ('{$level}','{$module_key}','{$action_key}','{$allowed}') ON DUPLICATE KEY UPDATE allowed='{$allowed}'";
+    return $db->query($sql);
+  }
+
   function current_client_id($user = null){
     if(!$user){
       $user = current_user();
@@ -1175,6 +1383,56 @@ function ensure_warehouse_schema($force = false){
     foreach($seed_ann as $sa){
       $st=$db->escape($sa[0]); $sc=$db->escape($sa[1]); $sd=$db->escape($sa[2]);
       $db->query("INSERT INTO announcements (title,content,category,publish_date,is_active,created_at) VALUES ('{$st}','{$sc}','UMUM','{$sd}','1','".make_date()."')");
+    }
+  }
+
+  $db->query("CREATE TABLE IF NOT EXISTS role_action_permissions (
+    role_level int(11) NOT NULL,
+    module_key varchar(40) NOT NULL,
+    action_key varchar(30) NOT NULL,
+    allowed tinyint(1) NOT NULL DEFAULT '0',
+    PRIMARY KEY (role_level, module_key, action_key)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3");
+
+  $rap_cnt = $db->query("SELECT COUNT(*) AS c FROM role_action_permissions");
+  $rap_row = $rap_cnt ? $db->fetch_assoc($rap_cnt) : null;
+  if($rap_row && (int)$rap_row['c'] === 0){
+    $seed_permissions = array(
+      USER_LEVEL_SPECIAL => array(
+        'satuan'      => array('view','create','update','delete'),
+        'barang'      => array('view','create','update','delete'),
+        'media'       => array('view','create','delete'),
+        'transaksi'   => array('view','create','update','delete'),
+        'pickup'      => array('view','process'),
+        'penagihan'   => array('view','create','update','delete','print','process'),
+        'surat_jalan' => array('view','print','process'),
+        'laporan'     => array('view','print')
+      ),
+      USER_LEVEL_USER => array(
+        'barang'      => array('view','create','update'),
+        'transaksi'   => array('view','create','update'),
+        'pickup'      => array('view'),
+        'penagihan'   => array('view'),
+        'surat_jalan' => array('view','print'),
+        'laporan'     => array('view','print')
+      ),
+      USER_LEVEL_CLIENT => array(
+        'barang_saya' => array('view'),
+        'pickup'      => array('view','create'),
+        'penagihan'   => array('view','print'),
+        'surat_jalan' => array('view','print')
+      )
+    );
+    $modules_for_seed = access_permission_modules();
+    foreach($seed_permissions as $role_level => $module_actions){
+      foreach($modules_for_seed as $module_key => $module_meta){
+        foreach($module_meta['actions'] as $action_key){
+          $allowed = (isset($module_actions[$module_key]) && in_array($action_key, $module_actions[$module_key], true)) ? 1 : 0;
+          $safe_module = $db->escape($module_key);
+          $safe_action = $db->escape($action_key);
+          $db->query("INSERT IGNORE INTO role_action_permissions (role_level, module_key, action_key, allowed) VALUES ('{$role_level}','{$safe_module}','{$safe_action}','{$allowed}')");
+        }
+      }
     }
   }
 
