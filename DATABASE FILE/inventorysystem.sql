@@ -340,8 +340,8 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `name`, `username`, `password`, `user_level`, `image`, `status`, `last_login`) VALUES
 (1, 'Budi Admin', 'admin', 'd033e22ae348aeb5660fc2140aec35850c4da997', 1, 'no_image.png', 1, '2026-06-04 07:16:43'),
-(2, 'Joko Spesial', 'special', 'ba36b97a41e7faf742ab09bf88405ac04f99599a', 2, 'no_image.png', 1, '2021-04-04 19:53:26'),
-(3, 'Christo User', 'user', '12dea96fec20593566ab75692c9949596833adc9', 3, 'no_image.png', 1, '2021-04-04 19:54:46'),
+(2, 'Joko Spesial', 'Admin Operasional', 'ba36b97a41e7faf742ab09bf88405ac04f99599a', 2, 'no_image.png', 1, '2021-04-04 19:53:26'),
+(3, 'Christo User', 'Staff Gudang', '12dea96fec20593566ab75692c9949596833adc9', 3, 'no_image.png', 1, '2021-04-04 19:54:46'),
 (4, 'Nadia Williams', 'natie', '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 3, 'no_image.png', 1, NULL),
 (5, 'Kevin Pegawai', 'kevin', '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 3, 'no_image.png', 1, '2021-04-04 19:54:29'),
 (6, 'Pelanggan Demo', 'client', 'd2a04d71301a8915217dd5faf81d12cffd6cd958', 4, 'no_image.png', 1, '2026-05-21 10:22:58'),
@@ -368,8 +368,8 @@ CREATE TABLE `user_groups` (
 
 INSERT INTO `user_groups` (`id`, `group_name`, `group_level`, `group_status`) VALUES
 (1, 'Admin', 1, 1),
-(2, 'special', 2, 1),
-(3, 'User', 3, 1),
+(2, 'Admin Operasional', 2, 1),
+(3, 'Staff Gudang', 3, 1),
 (4, 'Pelanggan', 4, 1);
 
 -- --------------------------------------------------------
