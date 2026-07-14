@@ -5,7 +5,7 @@
    require_permission('barang','update');
 ?>
 <?php
-$product = find_by_id('products',(int)$_GET['id']);
+$product = find_product_details(isset($_GET['id']) ? (int)$_GET['id'] : 0);
 $all_categories = find_all('categories');
 $all_photo = find_all('media');
 $all_clients = find_active_clients();
@@ -15,21 +15,43 @@ if(!$product){
   $session->msg("d","Barang titipan tidak ditemukan.");
   redirect('product.php');
 }
+
+$bundle_summary = function_exists('find_product_bundle_summary')
+  ? find_product_bundle_summary((int)$product['id'])
+  : array();
+$has_bundle_details = !empty($bundle_summary['total_count']);
+$bundle_count = isset($bundle_summary['total_count'])
+  ? (int)$bundle_summary['total_count']
+  : 0;
+$current_bundle_count = isset($bundle_summary['available_count']) || isset($bundle_summary['reserved_count'])
+  ? (int)$bundle_summary['available_count'] + (int)$bundle_summary['reserved_count']
+  : 0;
+if(!$has_bundle_details){ $current_bundle_count = 0; }
+$package_unit = !empty($product['unit_id']) ? find_unit_by_id((int)$product['unit_id']) : null;
+$base_unit_id = isset($product['base_unit_id']) ? (int)$product['base_unit_id'] : 0;
+$base_unit = $base_unit_id > 0 ? find_unit_by_id($base_unit_id) : null;
+$package_unit_name = $package_unit ? $package_unit['name'] : 'bundle';
+$base_unit_name = $base_unit ? $base_unit['name'] : 'unit dasar';
+$product_owner = !empty($product['client_id']) ? find_by_id('users', (int)$product['client_id']) : null;
+$product_owner_name = $product_owner ? $product_owner['name'] : 'Stok internal / tanpa pelanggan';
 ?>
 <?php
  if(isset($_POST['product'])){
-    $req_fields = array('product-title','product-categorie','product-quantity','product-unit' );
+    $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : null;
+    if(!function_exists('warehouse_csrf_is_valid') || !warehouse_csrf_is_valid($csrf_token)){
+      $session->msg('d','Token keamanan tidak valid atau sudah kedaluwarsa. Silakan muat ulang form.');
+      redirect('edit_product.php?id='.$product['id'], false);
+    }
+    $req_fields = array('product-title','product-categorie');
     validate_fields($req_fields);
 
    if(empty($errors)){
        $p_name  = remove_junk($db->escape($_POST['product-title']));
        $p_cat   = (int)$_POST['product-categorie'];
-       $isi    = (int)$db->escape($_POST['product-quantity']); // isi per satuan (lembar/PC)
-       if($isi < 1){ $isi = 1; }
-       $jumlah = (isset($_POST['product-krat']) && (int)$_POST['product-krat'] > 0) ? (int)$db->escape($_POST['product-krat']) : 1;
-       $p_qty   = $isi * $jumlah; // total lembar
-       $pcs_value = $isi > 1 ? "'".$db->escape($isi)."'" : "NULL"; // simpan isi per satuan hanya jika >1 (kontainer)
-       $p_unit  = (int)$db->escape($_POST['product-unit']);
+       // Stok dan satuannya tidak boleh diubah dari form metadata. Untuk produk
+       // bundle-backed, products.quantity hanya boleh berubah bersama status bundle.
+       $p_qty   = (int)$product['quantity'];
+       $p_unit  = isset($product['unit_id']) ? (int)$product['unit_id'] : 0;
        // Detail surat jalan, grade & ukuran plywood
        $no_sj    = isset($_POST['product-sj']) ? remove_junk($db->escape($_POST['product-sj'])) : '';
        $no_batch = isset($_POST['product-batch']) ? remove_junk($db->escape($_POST['product-batch'])) : '';
@@ -54,10 +76,28 @@ if(!$product){
        $p_sale  = remove_junk($db->escape($_POST['saleing-price']));
        $defect_qty = isset($_POST['defect-quantity']) ? (int)$db->escape($_POST['defect-quantity']) : 0;
        $defect_note = isset($_POST['defect-note']) ? remove_junk($db->escape($_POST['defect-note'])) : '';
-       $client_id = isset($_POST['product-client']) && $_POST['product-client'] !== ''
-         ? (int)$db->escape($_POST['product-client'])
-         : 0;
-       $client_value = $client_id > 0 ? "'".$db->escape($client_id)."'" : "NULL";
+       // Pemilik produk bundle-backed dikunci karena setiap inventory_bundles
+       // menyimpan client_id yang sama. Mengubah hanya products.client_id akan
+       // membuat ownership dan request pengambilan tidak konsisten.
+       if($has_bundle_details){
+         $client_id = !empty($product['client_id']) ? (int)$product['client_id'] : 0;
+       } else {
+         $client_id = isset($_POST['product-client']) && $_POST['product-client'] !== ''
+           ? (int)$db->escape($_POST['product-client'])
+           : 0;
+       }
+       $requested_client_id = $client_id;
+       if(!$has_bundle_details && $client_id > 0){
+         $client_row = find_by_id('users', $client_id);
+         if(!$client_row || (int)$client_row['user_level'] !== USER_LEVEL_CLIENT || (int)$client_row['status'] !== 1){
+           $session->msg('d','Pemilik barang harus berupa client yang masih aktif.');
+           redirect('edit_product.php?id='.(int)$product['id'], false);
+         }
+       }
+       if($client_id > 0 && trim($no_sj) === ''){
+         $session->msg('d','Nomor Surat Jalan wajib diisi untuk barang milik client.');
+         redirect('edit_product.php?id='.(int)$product['id'], false);
+       }
        $media_id = '0';
        if(!empty($_FILES['product_image']) && isset($_FILES['product_image']['name']) && $_FILES['product_image']['error'] !== UPLOAD_ERR_NO_FILE){
          $photo = new Media();
@@ -77,65 +117,29 @@ if(!$product){
            $media_id = remove_junk($db->escape($_POST['product-photo']));
          }
        }
-       $query   = "UPDATE products SET";
-       $query  .=" name ='{$p_name}', no_surat_jalan={$no_sj_value}, no_batch={$no_batch_value}, grade={$grade_value},";
-       $query  .=" tebal={$tebal_value}, lebar={$lebar_value}, panjang={$panjang_value}, m3={$m3_value}, sj_scan={$sj_scan_value}, quantity ='{$p_qty}', pcs_per_crate={$pcs_value},";
-       $query  .=" buy_price ='{$p_buy}', sale_price ='{$p_sale}', categorie_id ='{$p_cat}',client_id={$client_value},unit_id='{$p_unit}',media_id='{$media_id}'";
-       $query  .=" WHERE id ='{$product['id']}'";
-       $result = $db->query($query);
+       $result = false;
+       try{
+         $db->begin_transaction();
+         $owner_state = lock_product_owner_for_metadata_update((int)$product['id'], $requested_client_id, $has_bundle_details);
+         if($owner_state === false){ throw new RuntimeException('Product ownership changed while editing.'); }
+         $client_id = (int)$owner_state['client_id'];
+         if($client_id > 0 && trim($no_sj) === ''){ throw new RuntimeException('Client product requires a delivery note number.'); }
+         $client_value = $client_id > 0 ? "'".$db->escape($client_id)."'" : "NULL";
+         $query   = "UPDATE products SET";
+         $query  .=" name ='{$p_name}', no_surat_jalan={$no_sj_value}, no_batch={$no_batch_value}, grade={$grade_value},";
+         $query  .=" tebal={$tebal_value}, lebar={$lebar_value}, panjang={$panjang_value}, m3={$m3_value}, sj_scan={$sj_scan_value},";
+         $query  .=" buy_price ='{$p_buy}', sale_price ='{$p_sale}', categorie_id ='{$p_cat}',client_id={$client_value},media_id='{$media_id}'";
+         $query  .=" WHERE id ='".(int)$product['id']."'";
+         $db->query_or_throw($query);
+         $db->commit();
+         $result = true;
+       } catch(Throwable $e){
+         if($db->in_transaction()){ $db->rollback(); }
+         error_log('[edit_product] metadata update failed: '.$e->getMessage());
+       }
 
-               if($result){
-                 if((int)$product['quantity'] !== $p_qty){
-                   $movement_id = record_stock_movement($product['id'], 'adjustment', abs($p_qty - (int)$product['quantity']), (int)$product['quantity'], $p_qty, array(
-                     'client_id' => $client_id,
-                     'unit_id' => $p_unit,
-                     'reference_type' => 'edit_barang',
-                     'reference_id' => $product['id'],
-                     'note' => 'Penyesuaian stok manual dari edit barang'
-                   ));
-
-                   if(!$movement_id){
-                     $old_client_value = !empty($product['client_id']) ? "'".$db->escape((int)$product['client_id'])."'" : "NULL";
-                     $rollback  = "UPDATE products SET";
-                     $rollback .= " name ='".$db->escape($product['name'])."', quantity ='".$db->escape((int)$product['quantity'])."',";
-                     $rollback .= " buy_price ='".$db->escape($product['buy_price'])."', sale_price ='".$db->escape($product['sale_price'])."',";
-                     $rollback .= " categorie_id ='".$db->escape((int)$product['categorie_id'])."', client_id={$old_client_value},unit_id='".$db->escape(isset($product['unit_id']) ? (int)$product['unit_id'] : 0)."',media_id='".$db->escape($product['media_id'])."'";
-                     $rollback .= " WHERE id ='".$db->escape($product['id'])."' LIMIT 1";
-                     $db->query($rollback);
-                     $session->msg('d',' Riwayat penyesuaian stok gagal disimpan. Perubahan barang dibatalkan.');
-                     redirect('edit_product.php?id='.$product['id'], false);
-                   }
-
-                   $movement_type = $p_qty > (int)$product['quantity'] ? 'in' : 'out';
-                   $delivery_note = $movement_type === 'in'
-                     ? 'Surat jalan otomatis dari penambahan stok barang titipan.'
-                     : 'Surat jalan otomatis dari pengurangan stok barang titipan.';
-                   $delivery_id = create_delivery_order(array(
-                     'movement_type' => $movement_type,
-                     'client_id' => $client_id,
-                     'product_id' => $product['id'],
-                     'quantity' => abs($p_qty - (int)$product['quantity']),
-                     'document_date' => date('Y-m-d'),
-                     'recipient' => $movement_type === 'out' && !empty($product['client_id']) ? 'Client' : 'Gudang',
-                     'reference_type' => 'penyesuaian_barang',
-                     'reference_id' => $product['id'],
-                     'note' => $delivery_note
-                   ));
-
-                   if(!$delivery_id){
-                     delete_by_id('stock_movements', (int)$movement_id);
-                     $old_client_value = !empty($product['client_id']) ? "'".$db->escape((int)$product['client_id'])."'" : "NULL";
-                     $rollback  = "UPDATE products SET";
-                     $rollback .= " name ='".$db->escape($product['name'])."', quantity ='".$db->escape((int)$product['quantity'])."',";
-                     $rollback .= " buy_price ='".$db->escape($product['buy_price'])."', sale_price ='".$db->escape($product['sale_price'])."',";
-                     $rollback .= " categorie_id ='".$db->escape((int)$product['categorie_id'])."', client_id={$old_client_value},unit_id='".$db->escape(isset($product['unit_id']) ? (int)$product['unit_id'] : 0)."',media_id='".$db->escape($product['media_id'])."'";
-                     $rollback .= " WHERE id ='".$db->escape($product['id'])."' LIMIT 1";
-                     $db->query($rollback);
-                     $session->msg('d',' Surat jalan gagal dibuat. Perubahan barang dibatalkan.');
-                     redirect('edit_product.php?id='.$product['id'], false);
-                   }
-                 }
-                 if($defect_qty > 0){
+                if($result){
+                  if($defect_qty > 0){
                    if($defect_note === ''){
                      $defect_note = 'Keterangan cacat tidak disediakan.';
                    }
@@ -150,7 +154,7 @@ if(!$product){
                  $session->msg('s',"Barang titipan berhasil diperbarui. ");
                  redirect('product.php', false);
                } else {
-                 $session->msg('d',' Maaf, barang titipan gagal diperbarui.');
+                 $session->msg('d','Barang gagal diperbarui karena data pemilik atau rincian bundle berubah. Muat ulang halaman lalu coba kembali.');
                  redirect('edit_product.php?id='.$product['id'], false);
                }
 
@@ -190,6 +194,7 @@ if(!$product){
         <div class="panel-body">
          <div class="col-md-7">
            <form method="post" action="edit_product.php?id=<?php echo (int)$product['id'] ?>" enctype="multipart/form-data">
+              <?php if(function_exists('warehouse_csrf_field')){ echo warehouse_csrf_field(); } ?>
               <div class="form-group">
                 <div class="input-group">
                   <span class="input-group-addon">
@@ -240,22 +245,30 @@ if(!$product){
                     <?php endif; ?>
                   </div>
                   <div class="col-md-6" style="margin-top:10px;">
-                    <select class="form-control" name="product-client">
-                      <option value="">Stok internal / tanpa pelanggan</option>
-                      <?php foreach ($all_clients as $client): ?>
-                        <option value="<?php echo (int)$client['id'];?>" <?php if((int)$product['client_id'] === (int)$client['id']): echo 'selected="selected"'; endif; ?>>
-                          <?php echo remove_junk($client['name']); ?>
-                        </option>
-                      <?php endforeach; ?>
-                    </select>
+                    <label>Pemilik Barang</label>
+                    <?php if($has_bundle_details): ?>
+                      <p class="form-control-static"><strong><?php echo remove_junk($product_owner_name); ?></strong></p>
+                      <small class="text-muted">Dikunci karena rincian bundle sudah terkait dengan pemilik ini.</small>
+                    <?php else: ?>
+                      <select class="form-control" name="product-client">
+                        <option value="">Stok internal / tanpa pelanggan</option>
+                        <?php foreach ($all_clients as $client): ?>
+                          <option value="<?php echo (int)$client['id'];?>" <?php if((int)$product['client_id'] === (int)$client['id']): echo 'selected="selected"'; endif; ?>>
+                            <?php echo remove_junk($client['name']); ?>
+                          </option>
+                        <?php endforeach; ?>
+                      </select>
+                      <small class="text-muted">Pemilik masih dapat diubah sebelum rincian bundle historis diinisialisasi.</small>
+                    <?php endif; ?>
                   </div>
                   <div class="col-md-6" style="margin-top:10px;">
-                    <select class="form-control" id="product-unit" name="product-unit">
-                      <option value="">Pilih Satuan</option>
-                      <?php foreach ($all_units as $unit): ?>
-                        <option value="<?php echo (int)$unit['id'];?>" <?php if((int)$product['unit_id'] === (int)$unit['id']): echo 'selected="selected"'; endif; ?>><?php echo remove_junk($unit['name']); ?></option>
-                      <?php endforeach; ?>
-                    </select>
+                    <label>Satuan Stok</label>
+                    <p class="form-control-static">
+                      Bundle: <strong><?php echo remove_junk($package_unit_name); ?></strong>
+                      &nbsp; / &nbsp;
+                      Dasar: <strong><?php echo $base_unit ? remove_junk($base_unit_name) : 'belum ditetapkan'; ?></strong>
+                    </p>
+                    <small class="text-muted">Satuan dan agregat stok dikelola bersama rincian bundle, bukan dari form metadata ini.</small>
                   </div>
                   <div class="col-md-12" style="margin-top:10px;">
                     <label>Foto Cacat Baru</label>
@@ -316,31 +329,36 @@ if(!$product){
               </div>
 
               <div class="form-group">
-                <?php
-                  $existing_pcs = isset($product['pcs_per_crate']) ? (int)$product['pcs_per_crate'] : 0;
-                  $existing_krat = ($existing_pcs > 0) ? (int)round((int)$product['quantity'] / $existing_pcs) : 1;
-                ?>
-                <div class="row">
-                  <div class="col-md-4">
-                    <label id="label-krat">Jumlah Krat</label>
-                    <input type="number" min="1" class="form-control" id="input-krat" name="product-krat" value="<?php echo $existing_krat; ?>">
+                <?php if($has_bundle_details): ?>
+                  <div class="alert alert-success" style="margin-bottom:0;">
+                    <strong>Stok berbasis bundle aktif.</strong><br>
+                    Stok saat ini: <strong><?php echo (int)$product['quantity']; ?> <?php echo remove_junk($base_unit_name); ?></strong>
+                    dalam <strong><?php echo (int)$current_bundle_count; ?> <?php echo remove_junk($package_unit_name); ?></strong>
+                    (<?php echo (int)$bundle_count; ?> bundle tercatat termasuk yang sudah keluar).
+                    <br><small>Nilai agregat dikunci agar tidak berbeda dari status tiap bundle.</small>
+                    <div style="margin-top:8px;">
+                      <a href="manage_product_bundles.php?id=<?php echo (int)$product['id']; ?>" class="btn btn-success btn-xs">
+                        <span class="glyphicon glyphicon-list"></span> Lihat Rincian Bundle
+                      </a>
+                    </div>
                   </div>
-                  <div class="col-md-4">
-                    <label id="label-pcs">Isi per Krat (lembar/PC)</label>
-                    <input type="number" min="0" class="form-control" id="input-pcs" name="product-quantity" value="<?php echo $existing_pcs > 0 ? $existing_pcs : (int)$product['quantity']; ?>">
+                <?php else: ?>
+                  <div class="alert alert-warning" style="margin-bottom:0;">
+                    <strong>Produk historis belum memiliki rincian bundle.</strong><br>
+                    Stok lama <strong><?php echo (int)$product['quantity']; ?></strong> tidak dikonversi otomatis. Admin harus memasukkan isi setiap bundle, dan jumlahnya wajib sama persis dengan stok tersebut.
+                    <div style="margin-top:8px;">
+                      <a href="manage_product_bundles.php?id=<?php echo (int)$product['id']; ?>" class="btn btn-warning btn-xs">
+                        <span class="glyphicon glyphicon-th-list"></span> Input Rincian Bundle
+                      </a>
+                    </div>
                   </div>
-                  <div class="col-md-4">
-                    <label>Total Lembar</label>
-                    <input type="text" class="form-control" id="input-total" value="<?php echo (int)$product['quantity']; ?>" readonly>
-                  </div>
-                </div>
-                <small class="text-muted">Total lembar = Jumlah Krat &times; Isi per Krat.</small>
+                <?php endif; ?>
               </div>
               <div class="form-group">
                 <div class="row">
                   <div class="col-md-6">
-                    <label for="defect-quantity">Tambah Jumlah Cacat (lembar)</label>
-                    <input type="number" min="0" class="form-control" name="defect-quantity" value="0" placeholder="Jumlah lembar cacat tambahan" />
+                    <label for="defect-quantity">Tambah Jumlah Cacat (<?php echo $base_unit ? remove_junk($base_unit_name) : 'unit dasar'; ?>)</label>
+                    <input type="number" min="0" class="form-control" name="defect-quantity" value="0" placeholder="Jumlah cacat tambahan" />
                   </div>
                   <div class="col-md-6">
                     <label for="defect-note">Keterangan Cacat</label>
@@ -350,25 +368,6 @@ if(!$product){
                 <input type="hidden" name="buying-price" value="<?php echo remove_junk($product['buy_price']);?>">
                 <input type="hidden" name="saleing-price" value="<?php echo remove_junk($product['sale_price']);?>">
               </div>
-              <script>
-              (function(){
-                var u=document.getElementById('product-unit'),
-                    lk=document.getElementById('label-krat'), lp=document.getElementById('label-pcs'),
-                    k=document.getElementById('input-krat'), p=document.getElementById('input-pcs'), t=document.getElementById('input-total');
-                function unitName(){
-                  if(!u || u.selectedIndex < 0) return 'Satuan';
-                  var txt=(u.options[u.selectedIndex].text||'').trim();
-                  if(!txt || txt.toLowerCase().indexOf('pilih')!==-1) return 'Satuan';
-                  return txt.charAt(0).toUpperCase()+txt.slice(1);
-                }
-                function labels(){ var n=unitName(); if(lk)lk.textContent='Jumlah '+n; if(lp)lp.textContent='Isi per '+n+' (lembar/PC)'; }
-                function calc(){ if(t) t.value=(parseInt(k.value)||0)*(parseInt(p.value)||1); }
-                if(u) u.addEventListener('change', labels);
-                if(k) k.addEventListener('input', calc);
-                if(p) p.addEventListener('input', calc);
-                labels(); calc();
-              })();
-              </script>
               <button type="submit" name="product" class="btn btn-danger">Update Barang</button>
           </form>
          </div>

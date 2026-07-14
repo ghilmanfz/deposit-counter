@@ -15,6 +15,10 @@
 
 <?php
 if(isset($_POST['edit_cat'])){
+  if(!warehouse_csrf_is_valid(isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '')){
+    $session->msg('d','Sesi aksi tidak valid atau sudah kedaluwarsa. Silakan coba kembali.');
+    redirect('categorie.php',false);
+  }
   $req_field = array('categorie-name');
   validate_fields($req_field);
   $cat_name = remove_junk($db->escape($_POST['categorie-name']));
@@ -51,6 +55,7 @@ if(isset($_POST['edit_cat'])){
        </div>
        <div class="panel-body">
          <form method="post" action="edit_categorie.php?id=<?php echo (int)$categorie['id'];?>">
+           <?php echo warehouse_csrf_field(); ?>
            <div class="form-group">
                <input type="text" class="form-control" name="categorie-name" value="<?php echo remove_junk(ucfirst($categorie['name']));?>">
            </div>

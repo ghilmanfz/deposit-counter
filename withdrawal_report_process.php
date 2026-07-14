@@ -99,7 +99,7 @@ $results = '';
                 <h6><?php echo remove_junk(ucfirst($result['name']));?></h6>
               </td>
               <td class="text-right"><?php echo remove_junk($result['total_records']);?></td>
-              <td class="text-right"><?php echo remove_junk($result['total_sales']);?></td>
+              <td class="text-right"><?php echo remove_junk($result['total_sales']);?> <?php echo !empty($result['unit_name']) ? remove_junk($result['unit_name']) : 'satuan data lama'; ?></td>
           </tr>
         <?php endforeach; ?>
         </tbody>

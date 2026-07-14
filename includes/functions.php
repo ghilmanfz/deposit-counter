@@ -145,5 +145,38 @@ function randString($length = 5)
   return $str;
 }
 
+/*--------------------------------------------------------------*/
+/* CSRF protection for warehouse state-changing forms
+/*--------------------------------------------------------------*/
+function warehouse_csrf_token()
+{
+  if(empty($_SESSION['warehouse_csrf_token'])){
+    try {
+      if(!function_exists('random_bytes')){
+        throw new Exception('Secure random generator is unavailable.');
+      }
+      $_SESSION['warehouse_csrf_token'] = bin2hex(random_bytes(32));
+    } catch (Exception $e) {
+      $_SESSION['warehouse_csrf_token'] = hash('sha256', uniqid((string)mt_rand(), true));
+    }
+  }
+
+  return (string)$_SESSION['warehouse_csrf_token'];
+}
+
+function warehouse_csrf_field()
+{
+  return '<input type="hidden" name="csrf_token" value="'.htmlspecialchars(warehouse_csrf_token(), ENT_QUOTES, 'UTF-8').'">';
+}
+
+function warehouse_csrf_is_valid($token)
+{
+  if(empty($_SESSION['warehouse_csrf_token']) || !is_string($token)){
+    return false;
+  }
+
+  return hash_equals((string)$_SESSION['warehouse_csrf_token'], $token);
+}
+
 
 ?>

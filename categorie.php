@@ -8,6 +8,10 @@
 ?>
 <?php
  if(isset($_POST['add_cat'])){
+   if(!warehouse_csrf_is_valid(isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '')){
+     $session->msg('d','Sesi aksi tidak valid atau sudah kedaluwarsa. Silakan coba kembali.');
+     redirect('categorie.php',false);
+   }
    $req_field = array('categorie-name');
    validate_fields($req_field);
    $cat_name = remove_junk($db->escape($_POST['categorie-name']));
@@ -45,6 +49,7 @@
         </div>
         <div class="panel-body">
           <form method="post" action="categorie.php">
+            <?php echo warehouse_csrf_field(); ?>
             <div class="form-group">
                 <input type="text" class="form-control" name="categorie-name" placeholder="Nama Kategori">
             </div>
@@ -80,9 +85,13 @@
                         <a href="edit_categorie.php?id=<?php echo (int)$cat['id'];?>"  class="btn btn-xs btn-warning" data-toggle="tooltip" title="Edit">
                           <span class="glyphicon glyphicon-edit"></span>
                         </a>
-                        <a href="delete_categorie.php?id=<?php echo (int)$cat['id'];?>"  class="btn btn-xs btn-danger" data-toggle="tooltip" title="Hapus">
-                          <span class="glyphicon glyphicon-trash"></span>
-                        </a>
+                        <form method="post" action="delete_categorie.php" style="display:inline;" onsubmit="return confirm('Hapus kategori ini? Kategori yang masih dipakai barang tidak dapat dihapus.');">
+                          <?php echo warehouse_csrf_field(); ?>
+                          <input type="hidden" name="id" value="<?php echo (int)$cat['id']; ?>">
+                          <button type="submit" class="btn btn-xs btn-danger" data-toggle="tooltip" title="Hapus">
+                            <span class="glyphicon glyphicon-trash"></span>
+                          </button>
+                        </form>
                       </div>
                     </td>
 

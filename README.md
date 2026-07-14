@@ -25,7 +25,7 @@ Proyek ini dikembangkan dari struktur OSWA-INV dan disesuaikan menjadi sistem pe
 - Pencatatan barang cacat beserta foto bukti.
 - Request pengambilan barang dari klien.
 - Approval/reject request pengambilan oleh admin.
-- Pemrosesan stok saat surat jalan pengambilan dicetak/diproses.
+- Pemrosesan stok melalui tombol **Proses Pengambilan**; melihat atau mencetak Surat Jalan tidak mengubah stok.
 - Penagihan/invoice klien, jatuh tempo, status pembayaran, dan cetak invoice.
 - Surat jalan barang masuk dan barang keluar.
 - Laporan pengambilan harian, bulanan, dan periode tertentu.
@@ -131,9 +131,12 @@ Beberapa tabel penting:
 - `product_defects`: catatan barang cacat.
 - `product_defect_photos`: foto bukti barang cacat.
 - `pickup_requests`: request pengambilan barang dari klien.
+- `pickup_request_items`: snapshot setiap bundle fisik yang dipilih dalam request.
+- `inventory_bundles`: rincian bundle fisik, isi unit dasar, dan status tersedia/dipesan/keluar.
 - `delivery_orders`: surat jalan barang masuk/keluar.
+- `delivery_order_items`: snapshot bundle yang tercantum pada Surat Jalan keluar.
 - `billings`: invoice dan status pembayaran klien.
-- `withdrawals`: catatan transaksi pengambilan barang.
+- `withdrawals`: catatan transaksi pengambilan lama; pengambilan bundle baru dilaporkan dari `stock_movements` agar tidak dicatat dua kali.
 - `app_settings`: pengaturan aplikasi, termasuk tarif penyimpanan default.
 
 Aplikasi juga memiliki penyesuaian schema otomatis di `includes/sql.php`. Saat aplikasi dibuka, fungsi terkait akan membuat atau melengkapi tabel/kolom fitur warehouse jika belum tersedia. Jika server database membatasi operasi `ALTER TABLE`, lakukan penyesuaian schema secara manual dari dump SQL yang sudah tersedia.
@@ -157,9 +160,22 @@ uploads/         File upload produk, user, defect, dan surat jalan
 3. Admin menambahkan barang titipan dan memilih klien pemilik barang.
 4. Sistem mencatat stok awal, riwayat stok masuk, dan surat jalan masuk.
 5. Klien dapat melihat barang, stok, tagihan, surat jalan, dan mengajukan request pengambilan.
-6. Admin menyetujui atau menolak request pengambilan.
-7. Surat jalan pengambilan diproses, stok berkurang, dan status request diperbarui.
-8. Admin mengelola billing/invoice dan laporan pengambilan.
+6. Klien memilih satu atau beberapa bundle utuh; satu request boleh berisi beberapa jenis barang.
+7. Sistem mereservasi bundle terpilih agar tidak dapat dipilih oleh request lain.
+8. Admin menyetujui atau menolak request. Penolakan/pembatalan melepaskan reservasi.
+9. Admin menekan **Proses Pengambilan** saat barang benar-benar diserahkan. Pada tahap ini stok semua produk terkait berkurang dalam satu transaksi.
+10. Surat Jalan dapat dilihat atau dicetak setelah proses selesai tanpa memotong stok kembali.
+11. Admin mengelola billing/invoice dan laporan pengambilan.
+
+## Model Stok Bundle
+
+- `products.quantity` menyimpan stok fisik dalam satuan dasar, misalnya lembar atau pcs.
+- Setiap krat/dus/palet dicatat sebagai satu baris `inventory_bundles` dengan isi aktualnya. Isi antar-bundle boleh berbeda.
+- `products.unit_id` adalah satuan bundle dan `products.base_unit_id` adalah satuan isi.
+- Request baru wajib memilih bundle utuh berdasarkan stok milik klien. Sistem tidak memakai rata-rata isi bundle dan tidak memilih FIFO otomatis.
+- Bundle baru wajib memiliki client aktif. Stok internal historis tetap memakai alur transaksi lama sampai ditetapkan sebagai barang titipan milik client.
+- Produk lama tidak dikonversi otomatis. Admin perlu membuka **Rincian Bundle** dan memasukkan isi aktual setiap bundle dengan total yang sama persis dengan stok historis yang sudah tercatat.
+- Jika satu Surat Jalan masuk memuat beberapa jenis atau kualitas barang, masukkan tiap kombinasi barang/grade sebagai produk terpisah dengan nomor Surat Jalan yang sama.
 
 ## Troubleshooting
 

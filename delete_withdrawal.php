@@ -4,7 +4,12 @@
   require_permission('transaksi','delete');
 ?>
 <?php
-  $d_sale = find_by_id('withdrawals',(int)$_GET['id']);
+  if($_SERVER['REQUEST_METHOD'] !== 'POST' || !warehouse_csrf_is_valid(isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '')){
+    $session->msg('d','Permintaan hapus tidak valid atau sesi sudah kedaluwarsa.');
+    redirect('withdrawals.php', false);
+  }
+  $withdrawal_id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+  $d_sale = find_by_id('withdrawals',$withdrawal_id);
   if(!$d_sale){
     $session->msg("d","Data pengambilan tidak ditemukan.");
     redirect('withdrawals.php');
@@ -15,6 +20,11 @@
   if(!$product){
     $session->msg("d","Barang titipan terkait tidak ditemukan.");
     redirect('withdrawals.php');
+  }
+
+  if(function_exists('product_has_bundle_details') && product_has_bundle_details((int)$product['id'])){
+    $session->msg('d','Pengambilan lama tidak dapat dihapus setelah stok produk dikelola per bundle karena akan membuat stok fisik tidak konsisten.');
+    redirect('withdrawals.php', false);
   }
 
   $stock_change = increase_product_qty($d_sale['qty'], $d_sale['product_id']);

@@ -8,6 +8,10 @@
 <?php
 
   if(isset($_POST['add_sale'])){
+    if(!warehouse_csrf_is_valid(isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '')){
+      $session->msg('d','Sesi formulir tidak valid atau sudah kedaluwarsa. Silakan coba kembali.');
+      redirect('add_withdrawal.php', false);
+    }
     $req_fields = array('s_id','quantity','date','due_date','billing_amount' );
     validate_fields($req_fields);
         if(empty($errors)){
@@ -26,6 +30,11 @@
           if(!$product){
             $session->msg('d',' Barang titipan tidak ditemukan.');
             redirect('add_withdrawal.php', false);
+          }
+
+          if(function_exists('product_has_bundle_details') && product_has_bundle_details($p_id)){
+            $session->msg('d','Barang ini dikelola per bundle. Gunakan menu Request Pengambilan agar bundle dipilih utuh dan stok tidak berbeda dengan rincian fisik.');
+            redirect('pickup_requests.php', false);
           }
 
           if((int)$s_qty <= 0){
@@ -168,6 +177,7 @@
       </div>
       <div class="panel-body">
         <form method="post" action="add_withdrawal.php">
+         <?php echo warehouse_csrf_field(); ?>
          <table class="table table-bordered">
            <thead>
             <th> Barang Titipan </th>

@@ -5,6 +5,10 @@
 
   if(isset($_POST['add_unit'])){
     require_permission('satuan','create');
+    if(!warehouse_csrf_is_valid(isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '')){
+      $session->msg('d','Sesi aksi tidak valid atau sudah kedaluwarsa. Silakan coba kembali.');
+      redirect('units.php', false);
+    }
     $req_fields = array('unit-name');
     validate_fields($req_fields);
     if(empty($errors)){
@@ -29,6 +33,7 @@
       <div class="panel-heading"><strong><span class="glyphicon glyphicon-plus"></span> Tambah Satuan</strong></div>
       <div class="panel-body">
         <form method="post" action="units.php">
+          <?php echo warehouse_csrf_field(); ?>
           <div class="form-group">
             <input type="text" class="form-control" name="unit-name" placeholder="Nama satuan, contoh: palet">
           </div>
@@ -59,7 +64,11 @@
                     <a href="edit_unit.php?id=<?php echo (int)$unit['id']; ?>" class="btn btn-info btn-xs" title="Edit"><span class="glyphicon glyphicon-edit"></span></a>
                   <?php endif; ?>
                   <?php if(role_can_action('satuan','delete')): ?>
-                    <a href="delete_unit.php?id=<?php echo (int)$unit['id']; ?>" class="btn btn-danger btn-xs" title="Hapus"><span class="glyphicon glyphicon-trash"></span></a>
+                    <form method="post" action="delete_unit.php" style="display:inline;" onsubmit="return confirm('Hapus satuan ini? Satuan yang sudah dipakai tidak dapat dihapus.');">
+                      <?php echo warehouse_csrf_field(); ?>
+                      <input type="hidden" name="id" value="<?php echo (int)$unit['id']; ?>">
+                      <button type="submit" class="btn btn-danger btn-xs" title="Hapus"><span class="glyphicon glyphicon-trash"></span></button>
+                    </form>
                   <?php endif; ?>
                 </div>
               </td>

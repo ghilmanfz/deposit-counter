@@ -37,6 +37,9 @@ assert_truthy_value(isset($modules['barang']), 'access_permission_modules expose
 assert_truthy_value(in_array('create', $modules['barang']['actions'], true), 'barang supports create');
 assert_truthy_value(isset($modules['penagihan']), 'access_permission_modules exposes penagihan');
 assert_truthy_value(in_array('process', $modules['penagihan']['actions'], true), 'penagihan supports process');
+assert_truthy_value(isset($modules['pickup']), 'access_permission_modules exposes pickup');
+assert_truthy_value(in_array('process', $modules['pickup']['actions'], true), 'pickup owns stock processing permission');
+assert_same_value(false, in_array('process', $modules['surat_jalan']['actions'], true), 'surat jalan does not expose an unused process permission');
 
 assert_same_value(true, role_can_action('barang', 'delete', USER_LEVEL_ADMIN), 'admin can delete barang');
 assert_same_value(false, role_can_action('user_mgmt', 'view', USER_LEVEL_USER), 'staff cannot access admin-only user management');

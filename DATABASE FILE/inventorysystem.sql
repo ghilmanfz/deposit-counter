@@ -125,6 +125,58 @@ INSERT INTO `delivery_orders` (`id`, `document_no`, `movement_type`, `client_id`
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `delivery_order_items`
+--
+
+CREATE TABLE `delivery_order_items` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `delivery_order_id` int(11) UNSIGNED NOT NULL,
+  `pickup_request_item_id` int(11) UNSIGNED DEFAULT NULL,
+  `bundle_id` int(11) UNSIGNED DEFAULT NULL,
+  `product_id` int(11) UNSIGNED NOT NULL,
+  `base_unit_id` int(11) UNSIGNED DEFAULT NULL,
+  `package_unit_id` int(11) UNSIGNED DEFAULT NULL,
+  `quantity` int(11) NOT NULL,
+  `bundle_no` varchar(80) DEFAULT NULL,
+  `product_name` varchar(255) DEFAULT NULL,
+  `no_surat_jalan` varchar(100) DEFAULT NULL,
+  `no_batch` varchar(100) DEFAULT NULL,
+  `grade` varchar(20) DEFAULT NULL,
+  `tebal` decimal(10,2) DEFAULT NULL,
+  `lebar` decimal(10,2) DEFAULT NULL,
+  `panjang` decimal(10,2) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'ready',
+  `processed_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `inventory_bundles`
+--
+
+CREATE TABLE `inventory_bundles` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `bundle_no` varchar(80) NOT NULL,
+  `product_id` int(11) UNSIGNED NOT NULL,
+  `client_id` int(11) UNSIGNED DEFAULT NULL,
+  `package_unit_id` int(11) UNSIGNED DEFAULT NULL,
+  `base_unit_id` int(11) UNSIGNED NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'available',
+  `reserved_request_id` int(11) UNSIGNED DEFAULT NULL,
+  `reserved_at` datetime DEFAULT NULL,
+  `out_delivery_order_id` int(11) UNSIGNED DEFAULT NULL,
+  `out_at` datetime DEFAULT NULL,
+  `created_by` int(11) UNSIGNED DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `media`
 --
 
@@ -170,6 +222,33 @@ CREATE TABLE `pickup_requests` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `pickup_request_items`
+--
+
+CREATE TABLE `pickup_request_items` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `pickup_request_id` int(11) UNSIGNED NOT NULL,
+  `bundle_id` int(11) UNSIGNED DEFAULT NULL,
+  `product_id` int(11) UNSIGNED NOT NULL,
+  `base_unit_id` int(11) UNSIGNED DEFAULT NULL,
+  `package_unit_id` int(11) UNSIGNED DEFAULT NULL,
+  `quantity` int(11) NOT NULL,
+  `bundle_no` varchar(80) DEFAULT NULL,
+  `product_name` varchar(255) DEFAULT NULL,
+  `no_surat_jalan` varchar(100) DEFAULT NULL,
+  `no_batch` varchar(100) DEFAULT NULL,
+  `grade` varchar(20) DEFAULT NULL,
+  `tebal` decimal(10,2) DEFAULT NULL,
+  `lebar` decimal(10,2) DEFAULT NULL,
+  `panjang` decimal(10,2) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'reserved',
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `products`
 --
 
@@ -191,6 +270,7 @@ CREATE TABLE `products` (
   `categorie_id` int(10) UNSIGNED NOT NULL,
   `client_id` int(10) UNSIGNED DEFAULT NULL,
   `unit_id` int(11) UNSIGNED DEFAULT NULL,
+  `base_unit_id` int(11) UNSIGNED DEFAULT NULL,
   `media_id` int(11) DEFAULT 0,
   `date` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
@@ -262,6 +342,7 @@ CREATE TABLE `stock_movements` (
   `quantity_after` int(11) NOT NULL,
   `reference_type` varchar(50) DEFAULT NULL,
   `reference_id` int(10) UNSIGNED DEFAULT NULL,
+  `event_key` varchar(120) DEFAULT NULL,
   `note` varchar(255) DEFAULT NULL,
   `created_by` int(10) UNSIGNED DEFAULT NULL,
   `created_at` datetime NOT NULL
@@ -434,9 +515,37 @@ ALTER TABLE `categories`
 ALTER TABLE `delivery_orders`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `document_no` (`document_no`),
+  ADD UNIQUE KEY `uq_delivery_pickup_request` (`pickup_request_id`),
   ADD KEY `client_id` (`client_id`),
   ADD KEY `product_id` (`product_id`),
   ADD KEY `document_date` (`document_date`);
+
+--
+-- Indexes for table `delivery_order_items`
+--
+ALTER TABLE `delivery_order_items`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_delivery_item_bundle` (`delivery_order_id`,`bundle_id`),
+  ADD UNIQUE KEY `uq_delivery_pickup_item` (`pickup_request_item_id`),
+  ADD KEY `idx_delivery_item_order_status` (`delivery_order_id`,`status`),
+  ADD KEY `idx_delivery_item_product` (`product_id`),
+  ADD KEY `idx_delivery_item_bundle` (`bundle_id`),
+  ADD KEY `idx_delivery_item_base_unit` (`base_unit_id`),
+  ADD KEY `idx_delivery_item_package_unit` (`package_unit_id`);
+
+--
+-- Indexes for table `inventory_bundles`
+--
+ALTER TABLE `inventory_bundles`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `bundle_no` (`bundle_no`),
+  ADD KEY `idx_bundle_product_status` (`product_id`,`status`),
+  ADD KEY `idx_bundle_client_status` (`client_id`,`status`),
+  ADD KEY `idx_bundle_reserved_request` (`reserved_request_id`),
+  ADD KEY `idx_bundle_out_delivery` (`out_delivery_order_id`),
+  ADD KEY `idx_bundle_base_unit` (`base_unit_id`),
+  ADD KEY `idx_bundle_package_unit` (`package_unit_id`),
+  ADD KEY `idx_bundle_created_by` (`created_by`);
 
 --
 -- Indexes for table `media`
@@ -457,6 +566,18 @@ ALTER TABLE `pickup_requests`
   ADD KEY `status` (`status`);
 
 --
+-- Indexes for table `pickup_request_items`
+--
+ALTER TABLE `pickup_request_items`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_pickup_item_bundle` (`pickup_request_id`,`bundle_id`),
+  ADD KEY `idx_pickup_item_request_status` (`pickup_request_id`,`status`),
+  ADD KEY `idx_pickup_item_product_status` (`product_id`,`status`),
+  ADD KEY `idx_pickup_item_bundle` (`bundle_id`),
+  ADD KEY `idx_pickup_item_base_unit` (`base_unit_id`),
+  ADD KEY `idx_pickup_item_package_unit` (`package_unit_id`);
+
+--
 -- Indexes for table `products`
 --
 ALTER TABLE `products`
@@ -464,6 +585,7 @@ ALTER TABLE `products`
   ADD KEY `idx_products_name` (`name`),
   ADD KEY `categorie_id` (`categorie_id`),
   ADD KEY `client_id` (`client_id`),
+  ADD KEY `base_unit_id` (`base_unit_id`),
   ADD KEY `media_id` (`media_id`);
 
 --
@@ -487,6 +609,7 @@ ALTER TABLE `product_defect_photos`
 --
 ALTER TABLE `stock_movements`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_stock_movement_event` (`event_key`),
   ADD KEY `product_id` (`product_id`),
   ADD KEY `client_id` (`client_id`),
   ADD KEY `created_by` (`created_by`);
@@ -542,6 +665,18 @@ ALTER TABLE `delivery_orders`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
+-- AUTO_INCREMENT for table `delivery_order_items`
+--
+ALTER TABLE `delivery_order_items`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `inventory_bundles`
+--
+ALTER TABLE `inventory_bundles`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `media`
 --
 ALTER TABLE `media`
@@ -552,6 +687,12 @@ ALTER TABLE `media`
 --
 ALTER TABLE `pickup_requests`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `pickup_request_items`
+--
+ALTER TABLE `pickup_request_items`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `products`
@@ -606,11 +747,51 @@ ALTER TABLE `withdrawals`
 --
 
 --
+-- Constraints for table `delivery_orders`
+--
+ALTER TABLE `delivery_orders`
+  ADD CONSTRAINT `fk_delivery_pickup_request` FOREIGN KEY (`pickup_request_id`) REFERENCES `pickup_requests` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+--
+-- Constraints for table `delivery_order_items`
+--
+ALTER TABLE `delivery_order_items`
+  ADD CONSTRAINT `fk_delivery_item_order` FOREIGN KEY (`delivery_order_id`) REFERENCES `delivery_orders` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_delivery_item_pickup_item` FOREIGN KEY (`pickup_request_item_id`) REFERENCES `pickup_request_items` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_delivery_item_bundle` FOREIGN KEY (`bundle_id`) REFERENCES `inventory_bundles` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_delivery_item_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_delivery_item_base_unit` FOREIGN KEY (`base_unit_id`) REFERENCES `units` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_delivery_item_package_unit` FOREIGN KEY (`package_unit_id`) REFERENCES `units` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+--
+-- Constraints for table `inventory_bundles`
+--
+ALTER TABLE `inventory_bundles`
+  ADD CONSTRAINT `fk_bundle_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_bundle_client` FOREIGN KEY (`client_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_bundle_package_unit` FOREIGN KEY (`package_unit_id`) REFERENCES `units` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_bundle_base_unit` FOREIGN KEY (`base_unit_id`) REFERENCES `units` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_bundle_reserved_request` FOREIGN KEY (`reserved_request_id`) REFERENCES `pickup_requests` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_bundle_out_delivery` FOREIGN KEY (`out_delivery_order_id`) REFERENCES `delivery_orders` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_bundle_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `pickup_request_items`
+--
+ALTER TABLE `pickup_request_items`
+  ADD CONSTRAINT `fk_pickup_item_request` FOREIGN KEY (`pickup_request_id`) REFERENCES `pickup_requests` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_pickup_item_bundle` FOREIGN KEY (`bundle_id`) REFERENCES `inventory_bundles` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_pickup_item_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_pickup_item_base_unit` FOREIGN KEY (`base_unit_id`) REFERENCES `units` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_pickup_item_package_unit` FOREIGN KEY (`package_unit_id`) REFERENCES `units` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+--
 -- Constraints for table `products`
 --
 ALTER TABLE `products`
-  ADD CONSTRAINT `FK_products` FOREIGN KEY (`categorie_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `FK_products_client` FOREIGN KEY (`client_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT `FK_products` FOREIGN KEY (`categorie_id`) REFERENCES `categories` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `FK_products_client` FOREIGN KEY (`client_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_product_base_unit` FOREIGN KEY (`base_unit_id`) REFERENCES `units` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 --
 -- Constraints for table `stock_movements`
@@ -618,7 +799,7 @@ ALTER TABLE `products`
 ALTER TABLE `stock_movements`
   ADD CONSTRAINT `FK_stock_movements_client` FOREIGN KEY (`client_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `FK_stock_movements_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  ADD CONSTRAINT `FK_stock_movements_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `FK_stock_movements_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 --
 -- Constraints for table `users`
@@ -630,7 +811,7 @@ ALTER TABLE `users`
 -- Constraints for table `withdrawals`
 --
 ALTER TABLE `withdrawals`
-  ADD CONSTRAINT `SK` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `SK` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

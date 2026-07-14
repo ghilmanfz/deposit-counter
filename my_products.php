@@ -29,16 +29,57 @@
     });
   }
 
-  // Ringkasan stok: total crate & total lembar (PC)
-  $total_crate = 0;
-  $total_lembar = 0;
+  // Siapkan ringkasan dari bundle aktual. Jangan menebak jumlah bundle produk
+  // historis dari products.quantity atau pcs_per_crate.
+  $bundle_view = array();
+  $package_totals = array();
+  $base_totals = array();
+  $legacy_product_count = 0;
   foreach($products as $p){
-    $qty = (int)$p['quantity'];
-    $pcs = isset($p['pcs_per_crate']) ? (int)$p['pcs_per_crate'] : 0;
-    if($qty > 0){
-      $total_lembar += $qty;
-      if($pcs > 0){ $total_crate += (int)round($qty / $pcs); }
+    $product_id = (int)$p['id'];
+    $bundle_summary = function_exists('find_product_bundle_summary')
+      ? find_product_bundle_summary($product_id)
+      : array();
+    $has_bundle_details = !empty($bundle_summary['total_count']);
+    $current_bundle_count = isset($bundle_summary['available_count']) || isset($bundle_summary['reserved_count'])
+      ? (int)$bundle_summary['available_count'] + (int)$bundle_summary['reserved_count']
+      : 0;
+    if(!isset($bundle_summary['available_count']) && !isset($bundle_summary['reserved_count'])){
+      foreach($bundle_rows as $bundle_row){
+        if(!isset($bundle_row['status']) || $bundle_row['status'] !== 'out'){ $current_bundle_count++; }
+      }
     }
+    $package_name = !empty($p['unit_name']) ? $p['unit_name'] : 'bundle';
+    $base_name = isset($p['base_unit_name']) ? $p['base_unit_name'] : '';
+    if($base_name === '' && !empty($p['base_unit_id'])){
+      $base_unit_row = find_unit_by_id((int)$p['base_unit_id']);
+      $base_name = $base_unit_row ? $base_unit_row['name'] : '';
+    }
+    $bundle_view[$product_id] = array(
+      'has_details' => $has_bundle_details,
+      'current_bundle_count' => $current_bundle_count,
+      'package_name' => $package_name,
+      'base_name' => $base_name
+    );
+    if($base_name !== ''){
+      if(!isset($base_totals[$base_name])){ $base_totals[$base_name] = 0; }
+      $base_totals[$base_name] += (int)$p['quantity'];
+    }
+    if($has_bundle_details){
+      if(!isset($package_totals[$package_name])){ $package_totals[$package_name] = 0; }
+      $package_totals[$package_name] += $current_bundle_count;
+    } else {
+      $legacy_product_count++;
+    }
+  }
+
+  $stock_summary_parts = array();
+  foreach($base_totals as $unit_name => $total){
+    $stock_summary_parts[] = (int)$total.' '.remove_junk($unit_name);
+  }
+  $package_summary_parts = array();
+  foreach($package_totals as $unit_name => $total){
+    $package_summary_parts[] = (int)$total.' '.remove_junk($unit_name);
   }
 
   $msg = $session->msg();
@@ -59,8 +100,10 @@
           <span class="glyphicon glyphicon-th-large"></span>
           <span>Barang Saya di Gudang</span>
         </strong>
-        <span class="pull-right">
-          Total: <strong><?php echo (int)$total_crate; ?></strong> satuan / <strong><?php echo (int)$total_lembar; ?></strong> lembar
+        <span class="pull-right text-right">
+          Stok: <strong><?php echo !empty($stock_summary_parts) ? implode(', ', $stock_summary_parts) : '0'; ?></strong><br>
+          Bundle belum keluar: <strong><?php echo !empty($package_summary_parts) ? implode(', ', $package_summary_parts) : '0'; ?></strong>
+          <?php if($legacy_product_count > 0): ?><span class="label label-warning"><?php echo (int)$legacy_product_count; ?> produk belum dirinci</span><?php endif; ?>
         </span>
       </div>
       <div class="panel-body">
@@ -115,9 +158,11 @@
             <?php foreach ($products as $product): ?>
             <?php
               $qty = (int)$product['quantity'];
-              $pcs = isset($product['pcs_per_crate']) ? (int)$product['pcs_per_crate'] : 0;
-              $crate = $pcs > 0 ? (int)round($qty / $pcs) : 0;
-              $unit_disp = !empty($product['unit_name']) ? remove_junk($product['unit_name']) : 'satuan';
+              $bundle_info = isset($bundle_view[(int)$product['id']])
+                ? $bundle_view[(int)$product['id']]
+                : array('has_details' => false, 'current_bundle_count' => 0, 'package_name' => 'bundle', 'base_name' => '');
+              $unit_disp = remove_junk($bundle_info['package_name']);
+              $base_disp = $bundle_info['base_name'] !== '' ? remove_junk($bundle_info['base_name']) : 'unit dasar';
               $m3 = isset($product['m3']) ? $product['m3'] : null;
               $m3_disp = ($m3 !== null && $m3 !== '') ? rtrim(rtrim(number_format((float)$m3, 4, ',', '.'), '0'), ',') : null;
             ?>
@@ -146,15 +191,16 @@
               <td class="text-center"><?php echo format_product_size($product); ?></td>
               <td class="text-center"><?php echo $m3_disp !== null ? $m3_disp.' m&sup3;' : '-'; ?></td>
               <td class="text-center">
-                <?php if($pcs > 0): ?>
-                  <strong><?php echo $crate; ?> <?php echo $unit_disp; ?></strong><br>
-                  <span class="text-muted"><?php echo $qty; ?> lembar</span>
+                <?php if($bundle_info['has_details']): ?>
+                  <strong><?php echo $qty; ?> <?php echo $base_disp; ?></strong><br>
+                  <span class="text-muted"><?php echo (int)$bundle_info['current_bundle_count']; ?> <?php echo $unit_disp; ?> belum keluar</span>
                 <?php else: ?>
-                  <?php echo $qty; ?> <?php echo $unit_disp; ?>
+                  <strong><?php echo $qty; ?> <?php echo $base_disp; ?></strong><br>
+                  <span class="label label-warning">Rincian bundle belum tersedia</span>
                 <?php endif; ?>
               </td>
               <td class="text-center"><a href="stock_history.php?product_id=<?php echo (int)$product['id']; ?>" title="Lihat riwayat keluar lengkap"><?php echo (int)$product['total_out']; ?></a></td>
-              <td class="text-center"><?php echo !empty($product['unit_name']) ? remove_junk($product['unit_name']) : '-'; ?></td>
+              <td class="text-center"><?php echo $unit_disp; ?> / <?php echo $base_disp; ?></td>
               <?php $defect_summary = find_product_defect_summary((int)$product['id']); ?>
               <td class="text-center"><a href="product_defects.php?product_id=<?php echo (int)$product['id']; ?>" class="btn btn-default btn-xs"><?php echo (int)$defect_summary['total_defect']; ?></a></td>
               <td class="text-center">

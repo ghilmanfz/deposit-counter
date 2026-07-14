@@ -14,8 +14,18 @@ if(!$sale){
 ?>
 <?php $product = find_product_details($sale['product_id']); ?>
 <?php
+if($product && function_exists('product_has_bundle_details') && product_has_bundle_details((int)$product['id'])){
+  $session->msg('d','Pengambilan lama tidak dapat diedit setelah stok produk dikelola per bundle. Buat Request Pengambilan baru untuk transaksi berikutnya.');
+  redirect('withdrawals.php', false);
+}
+?>
+<?php
 
   if(isset($_POST['update_sale'])){
+    if(!warehouse_csrf_is_valid(isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '')){
+      $session->msg('d','Sesi formulir tidak valid atau sudah kedaluwarsa. Silakan coba kembali.');
+      redirect('edit_withdrawal.php?id='.(int)$sale['id'], false);
+    }
     $req_fields = array('title','quantity', 'date' );
     validate_fields($req_fields);
         if(empty($errors)){
@@ -140,6 +150,7 @@ if(!$sale){
            <tbody  id="product_info">
               <tr>
               <form method="post" action="edit_withdrawal.php?id=<?php echo (int)$sale['id']; ?>">
+                <?php echo warehouse_csrf_field(); ?>
                 <td id="s_name">
                   <input type="text" class="form-control" id="sug_input" name="title" value="<?php echo remove_junk($product['name']); ?>" readonly>
                   <small class="help-block">

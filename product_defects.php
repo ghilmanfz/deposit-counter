@@ -14,6 +14,7 @@
     redirect(is_client_user() ? 'my_products.php' : 'product.php', false);
   }
   $defects = find_product_defects($product_id);
+  $base_unit_label = !empty($product['base_unit_name']) ? remove_junk($product['base_unit_name']) : 'unit dasar';
   $msg = $session->msg();
 ?>
 <?php include_once('layouts/header.php'); ?>
@@ -43,7 +44,7 @@
           </div>
           <div class="col-md-8">
             <p><strong>Barang:</strong> <?php echo remove_junk($product['name']); ?></p>
-            <p><strong>Stok:</strong> <?php echo (int)$product['quantity']; ?> <?php echo !empty($product['unit_name']) ? remove_junk($product['unit_name']) : ''; ?></p>
+            <p><strong>Stok:</strong> <?php echo (int)$product['quantity']; ?> <?php echo $base_unit_label; ?></p>
             <p class="text-muted">Barang cacat tetap dihitung ke stok. Informasi ini hanya sebagai catatan kondisi barang.</p>
           </div>
         </div>
@@ -65,7 +66,7 @@
             <tr>
               <td class="text-center"><?php echo count_id(); ?></td>
               <?php if(!is_client_user()): ?><td><?php echo !empty($defect['client_name']) ? remove_junk($defect['client_name']) : 'Internal'; ?></td><?php endif; ?>
-              <td class="text-center"><?php echo (int)$defect['defect_qty']; ?></td>
+              <td class="text-center"><?php echo (int)$defect['defect_qty']; ?> <?php echo $base_unit_label; ?></td>
               <td><?php echo !empty($defect['note']) ? remove_junk($defect['note']) : '-'; ?></td>
               <td>
                 <?php if(!empty($photos)): ?>

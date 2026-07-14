@@ -57,9 +57,13 @@
                 <a href="edit_user.php?id=<?php echo (int)$a_user['id'];?>" class="btn btn-xs btn-warning" data-toggle="tooltip" title="Edit">
                   <i class="glyphicon glyphicon-pencil"></i>
                </a>
-                <a href="delete_user.php?id=<?php echo (int)$a_user['id'];?>" class="btn btn-xs btn-danger" data-toggle="tooltip" title="Hapus">
-                  <i class="glyphicon glyphicon-remove"></i>
-                </a>
+                <form method="post" action="delete_user.php" style="display:inline;" onsubmit="return confirm('Hapus user ini? Client yang sudah memiliki barang atau histori hanya dapat dinonaktifkan.');">
+                  <?php echo warehouse_csrf_field(); ?>
+                  <input type="hidden" name="id" value="<?php echo (int)$a_user['id']; ?>">
+                  <button type="submit" class="btn btn-xs btn-danger" data-toggle="tooltip" title="Hapus">
+                    <i class="glyphicon glyphicon-remove"></i>
+                  </button>
+                </form>
                 </div>
            </td>
           </tr>

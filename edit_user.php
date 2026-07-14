@@ -3,6 +3,7 @@
   require_once('includes/load.php');
   // Checkin What level user has permission to view this page
    page_require_level(1);
+   ensure_consignment_tables();
 ?>
 <?php
   $e_user = find_by_id('users',(int)$_GET['id']);
@@ -10,6 +11,10 @@
   if(!$e_user){
     $session->msg("d","ID user tidak ditemukan.");
     redirect('users.php');
+  }
+  if($_SERVER['REQUEST_METHOD'] === 'POST' && !warehouse_csrf_is_valid(isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '')){
+    $session->msg('d','Sesi aksi tidak valid atau sudah kedaluwarsa. Silakan coba kembali.');
+    redirect('edit_user.php?id='.(int)$e_user['id'], false);
   }
   $current_group = find_by_groupLevel((int)$e_user['user_level']);
   $current_group_in_list = false;
@@ -37,13 +42,28 @@
        $status   = remove_junk($db->escape($_POST['status']));
        $storage_rate = (isset($_POST['storage_rate']) && $_POST['storage_rate'] !== '') ? (float)$_POST['storage_rate'] : null;
        $storage_rate_value = $storage_rate !== null ? "'".$db->escape($storage_rate)."'" : "NULL";
-            $sql = "UPDATE users SET name ='{$name}', username ='{$username}',user_level='{$level}',status='{$status}',storage_rate={$storage_rate_value} WHERE id='{$db->escape($id)}'";
-         $result = $db->query($sql);
-          if($result && $db->affected_rows() === 1){
+       $result = false;
+       try{
+         $db->begin_transaction();
+         $locked_result = $db->query_or_throw("SELECT id,user_level FROM users WHERE id='{$id}' LIMIT 1 FOR UPDATE");
+         $locked_user = $db->fetch_assoc($locked_result);
+         if(!$locked_user){ throw new RuntimeException('User no longer exists.'); }
+         if($level !== (int)$locked_user['user_level'] && $level !== USER_LEVEL_CLIENT && user_has_inventory_ownership_history($id)){
+           throw new RuntimeException('User still owns inventory history.');
+         }
+         $sql = "UPDATE users SET name ='{$name}', username ='{$username}',user_level='{$level}',status='{$status}',storage_rate={$storage_rate_value} WHERE id='{$id}'";
+         $db->query_or_throw($sql);
+         $db->commit();
+         $result = true;
+       } catch(Throwable $e){
+         if($db->in_transaction()){ $db->rollback(); }
+         error_log('[edit_user] account update failed: '.$e->getMessage());
+       }
+          if($result){
             $session->msg('s',"Akun berhasil diupdate ");
             redirect('edit_user.php?id='.(int)$e_user['id'], false);
           } else {
-            $session->msg('d',' Maaf, gagal mengupdate!');
+            $session->msg('d','Akun gagal diperbarui. Role client yang masih memiliki barang atau histori tidak dapat diubah menjadi non-client.');
             redirect('edit_user.php?id='.(int)$e_user['id'], false);
           }
     } else {
@@ -90,6 +110,7 @@ if(isset($_POST['update-pass'])) {
        </div>
        <div class="panel-body">
           <form method="post" action="edit_user.php?id=<?php echo (int)$e_user['id'];?>" class="clearfix">
+            <?php echo warehouse_csrf_field(); ?>
             <div class="form-group">
                   <label for="name" class="control-label">Nama Lengkap</label>
                   <input type="name" class="form-control" name="name" value="<?php echo remove_junk(ucwords($e_user['name'])); ?>">
@@ -135,6 +156,7 @@ if(isset($_POST['update-pass'])) {
       </div>
       <div class="panel-body">
         <form action="edit_user.php?id=<?php echo (int)$e_user['id'];?>" method="post" class="clearfix">
+          <?php echo warehouse_csrf_field(); ?>
           <div class="form-group">
                 <label for="password" class="control-label">Password</label>
                 <input type="password" class="form-control" name="password" placeholder="Ketik password baru">

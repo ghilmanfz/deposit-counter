@@ -29,8 +29,8 @@
                 <th> Nama Barang </th>
                 <th class="text-center" style="width: 12%;"> Client </th>
                 <th class="text-center" style="width: 10%;"> Kategori </th>
-                <th class="text-center" style="width: 10%;"> Stok </th>
-                <th class="text-center" style="width: 8%;"> Satuan </th>
+                <th class="text-center" style="width: 13%;"> Stok Unit Dasar </th>
+                <th class="text-center" style="width: 10%;"> Bundle / Dasar </th>
                 <th class="text-center" style="width: 8%;"> Keluar </th>
                 <th class="text-center" style="width: 8%;"> Cacat </th>
                 <th class="text-center" style="width: 12%;"> Foto Cacat </th>
@@ -41,6 +41,26 @@
             </thead>
             <tbody>
               <?php foreach ($products as $product):?>
+              <?php
+                $bundle_summary = function_exists('find_product_bundle_summary')
+                  ? find_product_bundle_summary((int)$product['id'])
+                  : array();
+                $has_bundle_details = !empty($bundle_summary['total_count']);
+                $current_bundle_count = isset($bundle_summary['available_count']) || isset($bundle_summary['reserved_count'])
+                  ? (int)$bundle_summary['available_count'] + (int)$bundle_summary['reserved_count']
+                  : 0;
+                if(!isset($bundle_summary['available_count']) && !isset($bundle_summary['reserved_count'])){
+                  foreach($bundle_rows as $bundle_row){
+                    if(!isset($bundle_row['status']) || $bundle_row['status'] !== 'out'){ $current_bundle_count++; }
+                  }
+                }
+                $base_unit_name = isset($product['base_unit_name']) ? $product['base_unit_name'] : '';
+                if($base_unit_name === '' && !empty($product['base_unit_id'])){
+                  $base_unit_row = find_unit_by_id((int)$product['base_unit_id']);
+                  $base_unit_name = $base_unit_row ? $base_unit_row['name'] : '';
+                }
+                $package_unit_name = !empty($product['unit_name']) ? $product['unit_name'] : 'bundle';
+              ?>
               <tr>
                 <td class="text-center"><?php echo count_id();?></td>
                 <td>
@@ -53,8 +73,18 @@
                 <td> <?php echo remove_junk($product['name']); ?></td>
                 <td class="text-center"><?php echo !empty($product['client_name']) ? remove_junk($product['client_name']) : 'Internal'; ?></td>
                 <td class="text-center"> <?php echo remove_junk($product['categorie']); ?></td>
-                <td class="text-center"> <?php echo remove_junk($product['quantity']); ?></td>
-                <td class="text-center"> <?php echo !empty($product['unit_name']) ? remove_junk($product['unit_name']) : '-'; ?></td>
+                <td class="text-center">
+                  <strong><?php echo (int)$product['quantity']; ?> <?php echo $base_unit_name !== '' ? remove_junk($base_unit_name) : 'unit dasar'; ?></strong>
+                  <?php if($has_bundle_details): ?>
+                    <br><small class="text-muted"><?php echo (int)$current_bundle_count; ?> <?php echo remove_junk($package_unit_name); ?> belum keluar</small>
+                  <?php else: ?>
+                    <br><span class="label label-warning">Rincian bundle belum ada</span>
+                  <?php endif; ?>
+                </td>
+                <td class="text-center">
+                  <?php echo remove_junk($package_unit_name); ?> /
+                  <?php echo $base_unit_name !== '' ? remove_junk($base_unit_name) : '<span class="text-muted">belum ditetapkan</span>'; ?>
+                </td>
                 <td class="text-center"> <?php echo (int)$product['total_out']; ?></td>
                 <?php $defect_summary = find_product_defect_summary((int)$product['id']); ?>
                 <td class="text-center">
@@ -84,11 +114,22 @@
                       <a href="edit_product.php?id=<?php echo (int)$product['id'];?>" class="btn btn-info btn-xs"  title="Edit" data-toggle="tooltip">
                         <span class="glyphicon glyphicon-edit"></span>
                       </a>
+                      <a href="manage_product_bundles.php?id=<?php echo (int)$product['id'];?>" class="btn btn-warning btn-xs" title="<?php echo $has_bundle_details ? 'Lihat rincian bundle' : 'Input rincian bundle'; ?>" data-toggle="tooltip">
+                        <span class="glyphicon glyphicon-th-list"></span>
+                      </a>
                     <?php endif; ?>
                     <?php if(role_can_action('barang','delete')): ?>
-                      <a href="delete_product.php?id=<?php echo (int)$product['id'];?>" class="btn btn-danger btn-xs"  title="Hapus" data-toggle="tooltip">
-                        <span class="glyphicon glyphicon-trash"></span>
-                      </a>
+                      <?php if(!$has_bundle_details): ?>
+                        <form method="post" action="delete_product.php" style="display:inline;" onsubmit="return confirm('Hapus barang ini?');">
+                          <?php echo warehouse_csrf_field(); ?>
+                          <input type="hidden" name="id" value="<?php echo (int)$product['id']; ?>">
+                          <button type="submit" class="btn btn-danger btn-xs" title="Hapus" data-toggle="tooltip"><span class="glyphicon glyphicon-trash"></span></button>
+                        </form>
+                      <?php else: ?>
+                        <button type="button" class="btn btn-default btn-xs" disabled title="Produk dengan histori bundle tidak dapat dihapus">
+                          <span class="glyphicon glyphicon-lock"></span>
+                        </button>
+                      <?php endif; ?>
                     <?php endif; ?>
                   </div>
                 </td>

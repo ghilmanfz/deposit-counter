@@ -8,11 +8,15 @@
     redirect('units.php', false);
   }
   if(isset($_POST['update_unit'])){
+    if(!warehouse_csrf_is_valid(isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '')){
+      $session->msg('d','Sesi aksi tidak valid atau sudah kedaluwarsa. Silakan coba kembali.');
+      redirect('edit_unit.php?id='.(int)$unit['id'], false);
+    }
     $req_fields = array('unit-name');
     validate_fields($req_fields);
     if(empty($errors)){
       $ok = update_unit((int)$unit['id'], $_POST['unit-name'], isset($_POST['unit-description']) ? $_POST['unit-description'] : '');
-      $session->msg($ok ? 's' : 'd', $ok ? 'Satuan berhasil diperbarui.' : 'Satuan gagal diperbarui.');
+      $session->msg($ok ? 's' : 'd', $ok ? 'Satuan berhasil diperbarui.' : 'Nama satuan yang sudah dipakai histori tidak dapat diubah.');
       redirect('units.php', false);
     } else {
       $session->msg('d', $errors);
@@ -29,6 +33,7 @@
       <div class="panel-heading"><strong><span class="glyphicon glyphicon-edit"></span> Edit Satuan Barang</strong></div>
       <div class="panel-body">
         <form method="post" action="edit_unit.php?id=<?php echo (int)$unit['id']; ?>">
+          <?php echo warehouse_csrf_field(); ?>
           <div class="form-group"><input type="text" class="form-control" name="unit-name" value="<?php echo remove_junk($unit['name']); ?>"></div>
           <div class="form-group"><input type="text" class="form-control" name="unit-description" value="<?php echo !empty($unit['description']) ? remove_junk($unit['description']) : ''; ?>"></div>
           <button type="submit" name="update_unit" class="btn btn-primary">Update</button>
