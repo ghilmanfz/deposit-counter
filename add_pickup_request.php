@@ -104,8 +104,7 @@
           <?php echo warehouse_csrf_field(); ?>
 
           <div class="form-group">
-            <label for="bundle-search">Pilih Bundle yang Akan Diambil</label>
-            <input type="text" class="form-control" id="bundle-search" placeholder="Cari nama barang, no surat jalan, batch, grade, atau ukuran">
+            <strong>Pilih Bundle yang Akan Diambil</strong>
             <p class="help-block">Satu checkbox mewakili satu bundle utuh. Isi tiap bundle dapat berbeda dan tidak dihitung dari rata-rata.</p>
           </div>
 
@@ -133,10 +132,9 @@
                     $package_unit = !empty($bundle['package_unit_name']) ? $bundle['package_unit_name'] : (!empty($bundle['unit_name']) ? $bundle['unit_name'] : 'bundle');
                     $base_quantity = isset($bundle['base_quantity']) ? (int)$bundle['base_quantity'] : (isset($bundle['quantity']) ? (int)$bundle['quantity'] : 0);
                     $base_unit = !empty($bundle['base_unit_name']) ? $bundle['base_unit_name'] : 'lembar/pcs';
-                    $search_text = strtolower($no_surat_jalan.' '.$product_name.' '.$no_batch.' '.$grade.' '.format_product_size($bundle));
                   ?>
                   <?php if($bundle_id > 0 && $base_quantity > 0): ?>
-                  <tr class="bundle-row" data-search="<?php echo htmlspecialchars($search_text, ENT_QUOTES, 'UTF-8'); ?>">
+                  <tr>
                     <td class="text-center" style="vertical-align:middle;">
                       <input type="checkbox" class="bundle-checkbox" name="bundle_ids[]" value="<?php echo $bundle_id; ?>" data-base-quantity="<?php echo $base_quantity; ?>" data-base-unit="<?php echo htmlspecialchars($base_unit, ENT_QUOTES, 'UTF-8'); ?>">
                     </td>
@@ -199,8 +197,6 @@
 
 <script>
 (function(){
-  var search = document.getElementById('bundle-search');
-  var rows = document.querySelectorAll('#bundle-table .bundle-row');
   var checks = document.querySelectorAll('#bundle-table .bundle-checkbox');
   var summary = document.getElementById('selection-summary');
 
@@ -227,15 +223,6 @@
     summary.textContent = selected + ' bundle dipilih' + (parts.length ? ' - Total isi: ' + parts.join(', ') : '');
   }
 
-  if(search){
-    search.addEventListener('input', function(){
-      var needle = (search.value || '').toLowerCase();
-      for(var i = 0; i < rows.length; i++){
-        var haystack = rows[i].getAttribute('data-search') || '';
-        rows[i].style.display = haystack.indexOf(needle) !== -1 ? '' : 'none';
-      }
-    });
-  }
   for(var i = 0; i < checks.length; i++){
     checks[i].addEventListener('change', updateSummary);
   }
