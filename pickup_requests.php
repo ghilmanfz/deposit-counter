@@ -166,7 +166,7 @@
                       <?php endif; ?>
 
                       <?php if(!$client_view && $status === 'approved' && role_can_action('pickup','process')): ?>
-                        <form method="post" action="process_pickup_request.php" id="<?php echo $process_form_id; ?>" style="display:inline;" onsubmit="return confirm('<?php echo $is_delivery ? 'Proses pengiriman' : 'Proses pengambilan'; ?> bundle terpilih dan potong stok sekarang?');">
+                        <form method="post" action="process_pickup_request.php" id="<?php echo $process_form_id; ?>" style="display:inline;" data-app-confirm="<?php echo $is_delivery ? 'Proses pengiriman' : 'Proses pengambilan'; ?> bundle terpilih dan potong stok sekarang?" data-confirm-title="<?php echo $is_delivery ? 'Konfirmasi Pengiriman' : 'Konfirmasi Pengambilan'; ?>" data-confirm-button="Ya, Proses" data-confirm-class="btn-warning">
                           <?php echo warehouse_csrf_field(); ?>
                           <input type="hidden" name="id" value="<?php echo (int)$req['id']; ?>">
                           <input type="hidden" name="action" value="process">
@@ -176,7 +176,7 @@
                       <?php endif; ?>
 
                       <?php if($client_view && $status === 'pending'): ?>
-                        <form method="post" action="cancel_pickup_request.php" style="display:inline;" onsubmit="return confirm('Batalkan request ini dan lepaskan seluruh bundle?');">
+                        <form method="post" action="cancel_pickup_request.php" style="display:inline;" data-app-confirm="Batalkan request ini dan lepaskan seluruh bundle?" data-confirm-title="Batalkan Request" data-confirm-button="Ya, Batalkan" data-confirm-class="btn-danger">
                           <?php echo warehouse_csrf_field(); ?>
                           <input type="hidden" name="id" value="<?php echo (int)$req['id']; ?>">
                           <button type="submit" class="btn btn-default btn-xs" title="Batalkan Request" data-toggle="tooltip"><span class="glyphicon glyphicon-ban-circle"></span></button>

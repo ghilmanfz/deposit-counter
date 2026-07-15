@@ -226,7 +226,7 @@
         </div>
         <div class="panel-body">
          <div class="col-md-12">
-          <form method="post" action="add_product.php" class="clearfix" enctype="multipart/form-data" onsubmit="return confirm('Pastikan client, satuan dasar, dan isi setiap bundle sudah sama dengan barang fisik serta Surat Jalan. Simpan data sekarang?');">
+          <form method="post" action="add_product.php" class="clearfix" enctype="multipart/form-data" data-app-confirm="Pastikan client, satuan dasar, dan isi setiap bundle sudah sama dengan barang fisik serta Surat Jalan. Simpan data sekarang?" data-confirm-title="Konfirmasi Barang Masuk" data-confirm-button="Ya, Simpan" data-confirm-class="btn-primary">
               <?php if(function_exists('warehouse_csrf_field')){ echo warehouse_csrf_field(); } ?>
               <div class="form-group">
                 <div class="input-group">

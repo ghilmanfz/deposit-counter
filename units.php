@@ -64,7 +64,7 @@
                     <a href="edit_unit.php?id=<?php echo (int)$unit['id']; ?>" class="btn btn-info btn-xs" title="Edit"><span class="glyphicon glyphicon-edit"></span></a>
                   <?php endif; ?>
                   <?php if(role_can_action('satuan','delete')): ?>
-                    <form method="post" action="delete_unit.php" style="display:inline;" onsubmit="return confirm('Hapus satuan ini? Satuan yang sudah dipakai tidak dapat dihapus.');">
+                    <form method="post" action="delete_unit.php" style="display:inline;" data-app-confirm="Hapus satuan ini? Satuan yang sudah dipakai tidak dapat dihapus." data-confirm-title="Hapus Satuan" data-confirm-button="Ya, Hapus" data-confirm-class="btn-danger">
                       <?php echo warehouse_csrf_field(); ?>
                       <input type="hidden" name="id" value="<?php echo (int)$unit['id']; ?>">
                       <button type="submit" class="btn btn-danger btn-xs" title="Hapus"><span class="glyphicon glyphicon-trash"></span></button>

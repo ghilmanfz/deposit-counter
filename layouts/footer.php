@@ -1,17 +1,32 @@
      </div>
     </div>
 
-    <div id="deleteConfirmModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmLabel" aria-hidden="true">
+    <div id="appConfirmModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="appConfirmLabel" aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="deleteConfirmLabel">Hapus data</h4>
+            <h4 class="modal-title" id="appConfirmLabel">Konfirmasi</h4>
           </div>
-          <div class="modal-body"></div>
+          <div class="modal-body" id="appConfirmMessage"></div>
           <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
-            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Ya, Hapus</button>
+            <button type="button" class="btn btn-primary" id="appConfirmButton">Ya, Lanjutkan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="appAlertModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="appAlertLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="appAlertLabel">Pemberitahuan</h4>
+          </div>
+          <div class="modal-body" id="appAlertMessage"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-dismiss="modal" id="appAlertButton">Mengerti</button>
           </div>
         </div>
       </div>

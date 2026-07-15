@@ -58,7 +58,7 @@ $msg = $session->msg();
                        </a>
                      <?php endif; ?>
                      <?php if((!isset($sale['source_type']) || $sale['source_type'] === 'legacy') && role_can_action('transaksi','delete')): ?>
-                       <form method="post" action="delete_withdrawal.php" style="display:inline;" onsubmit="return confirm('Hapus pengambilan ini dan kembalikan stok?');">
+                       <form method="post" action="delete_withdrawal.php" style="display:inline;" data-app-confirm="Hapus pengambilan ini dan kembalikan stok?" data-confirm-title="Hapus Pengambilan" data-confirm-button="Ya, Hapus &amp; Kembalikan Stok" data-confirm-class="btn-danger">
                          <?php echo warehouse_csrf_field(); ?>
                          <input type="hidden" name="id" value="<?php echo (int)$sale['id']; ?>">
                          <button type="submit" class="btn btn-danger btn-xs" title="Hapus" data-toggle="tooltip">

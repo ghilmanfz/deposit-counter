@@ -134,19 +134,113 @@ function suggetion() {
     });
   }
 
-  // Konfirmasi semua aksi hapus menggunakan modal sistem, bukan browser confirm Chrome.
-  var deleteLinkUrl = null;
-  $(document).on('click', 'a[href*="delete_"]', function(e) {
-    e.preventDefault();
-    deleteLinkUrl = $(this).attr('href');
-    var deleteTitle = $(this).attr('title') || 'Hapus data ini';
-    $('#deleteConfirmModal .modal-title').text(deleteTitle);
-    $('#deleteConfirmModal .modal-body').text('Apakah Anda yakin ingin menghapus data ini?');
-    $('#deleteConfirmModal').modal('show');
+  // Dialog aplikasi terpusat untuk seluruh konfirmasi form dan tautan.
+  var pendingAppConfirmation = null;
+
+  function allowedConfirmButtonClass(buttonClass){
+    var allowed = ['btn-primary','btn-danger','btn-warning','btn-success','btn-info'];
+    return allowed.indexOf(buttonClass) !== -1 ? buttonClass : 'btn-primary';
+  }
+
+  function showAppConfirmation($source, pending){
+    var title = $source.attr('data-confirm-title') || $source.attr('title') || 'Konfirmasi';
+    var message = $source.attr('data-app-confirm') || 'Apakah Anda yakin ingin melanjutkan tindakan ini?';
+    var buttonText = $source.attr('data-confirm-button') || 'Ya, Lanjutkan';
+    var buttonClass = allowedConfirmButtonClass($source.attr('data-confirm-class') || 'btn-primary');
+
+    pendingAppConfirmation = pending;
+    $('#appConfirmLabel').text(title);
+    $('#appConfirmMessage').text(message);
+    $('#appConfirmButton')
+      .removeClass('btn-primary btn-danger btn-warning btn-success btn-info')
+      .addClass(buttonClass)
+      .text(buttonText);
+    $('#appConfirmModal').modal('show');
+  }
+
+  function findFormSubmitter(event, form){
+    var originalEvent = event.originalEvent || null;
+    if(originalEvent && originalEvent.submitter){ return originalEvent.submitter; }
+    var active = document.activeElement;
+    if(active && active.form === form && /^(?:button|input)$/i.test(active.tagName)){ return active; }
+    return $(form).find('button[type="submit"],input[type="submit"],button:not([type])').get(0) || null;
+  }
+
+  function submitConfirmedForm(form, submitter){
+    $(form).data('app-confirm-bypass', true);
+    if(typeof form.requestSubmit === 'function'){
+      if(submitter){ form.requestSubmit(submitter); }
+      else { form.requestSubmit(); }
+      return;
+    }
+
+    if(submitter && submitter.name){
+      $('<input>', {
+        type: 'hidden',
+        name: submitter.name,
+        value: submitter.value || ''
+      }).appendTo(form);
+    }
+    form.submit();
+  }
+
+  $(document).on('submit', 'form[data-app-confirm]', function(event){
+    var $form = $(this);
+    if($form.data('app-confirm-bypass')){
+      $form.removeData('app-confirm-bypass');
+      return;
+    }
+    event.preventDefault();
+    showAppConfirmation($form, {
+      type: 'form',
+      form: this,
+      submitter: findFormSubmitter(event, this)
+    });
   });
 
-  $('#confirmDeleteBtn').on('click', function() {
-    if(deleteLinkUrl){
-      window.location.href = deleteLinkUrl;
+  $(document).on('click', 'a[data-app-confirm],button[data-app-confirm],input[data-app-confirm],a[href*="delete_"]', function(event){
+    var $source = $(this);
+    if($source.data('app-confirm-bypass')){
+      $source.removeData('app-confirm-bypass');
+      return;
+    }
+    if(this.disabled || $source.hasClass('disabled')){ return; }
+    if(this.form && typeof this.form.checkValidity === 'function' && !this.form.checkValidity()){
+      return;
+    }
+
+    event.preventDefault();
+    if(this.tagName.toLowerCase() === 'a'){
+      showAppConfirmation($source, { type: 'link', href: $source.attr('href') });
+    } else {
+      showAppConfirmation($source, { type: 'control', control: this });
     }
   });
+
+  $('#appConfirmButton').on('click', function(){
+    var pending = pendingAppConfirmation;
+    pendingAppConfirmation = null;
+    $('#appConfirmModal').modal('hide');
+    if(!pending){ return; }
+
+    if(pending.type === 'form'){
+      submitConfirmedForm(pending.form, pending.submitter);
+    } else if(pending.type === 'link' && pending.href){
+      window.location.assign(pending.href);
+    } else if(pending.type === 'control' && pending.control){
+      $(pending.control).data('app-confirm-bypass', true);
+      pending.control.click();
+    }
+  });
+
+  $('#appConfirmModal').on('hidden.bs.modal', function(){
+    pendingAppConfirmation = null;
+  });
+
+  window.showAppAlert = function(message, options){
+    options = options || {};
+    $('#appAlertLabel').text(options.title || 'Pemberitahuan');
+    $('#appAlertMessage').text(message || '');
+    $('#appAlertButton').text(options.buttonText || 'Mengerti');
+    $('#appAlertModal').modal('show');
+  };

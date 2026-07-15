@@ -57,7 +57,7 @@
                 <a href="edit_user.php?id=<?php echo (int)$a_user['id'];?>" class="btn btn-xs btn-warning" data-toggle="tooltip" title="Edit">
                   <i class="glyphicon glyphicon-pencil"></i>
                </a>
-                <form method="post" action="delete_user.php" style="display:inline;" onsubmit="return confirm('Hapus user ini? Client yang sudah memiliki barang atau histori hanya dapat dinonaktifkan.');">
+                <form method="post" action="delete_user.php" style="display:inline;" data-app-confirm="Hapus user ini? Client yang sudah memiliki barang atau histori hanya dapat dinonaktifkan." data-confirm-title="Hapus User" data-confirm-button="Ya, Lanjutkan" data-confirm-class="btn-danger">
                   <?php echo warehouse_csrf_field(); ?>
                   <input type="hidden" name="id" value="<?php echo (int)$a_user['id']; ?>">
                   <button type="submit" class="btn btn-xs btn-danger" data-toggle="tooltip" title="Hapus">

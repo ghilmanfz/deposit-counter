@@ -85,7 +85,7 @@
                         <a href="edit_categorie.php?id=<?php echo (int)$cat['id'];?>"  class="btn btn-xs btn-warning" data-toggle="tooltip" title="Edit">
                           <span class="glyphicon glyphicon-edit"></span>
                         </a>
-                        <form method="post" action="delete_categorie.php" style="display:inline;" onsubmit="return confirm('Hapus kategori ini? Kategori yang masih dipakai barang tidak dapat dihapus.');">
+                        <form method="post" action="delete_categorie.php" style="display:inline;" data-app-confirm="Hapus kategori ini? Kategori yang masih dipakai barang tidak dapat dihapus." data-confirm-title="Hapus Kategori" data-confirm-button="Ya, Hapus" data-confirm-class="btn-danger">
                           <?php echo warehouse_csrf_field(); ?>
                           <input type="hidden" name="id" value="<?php echo (int)$cat['id']; ?>">
                           <button type="submit" class="btn btn-xs btn-danger" data-toggle="tooltip" title="Hapus">

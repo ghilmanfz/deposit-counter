@@ -197,7 +197,7 @@
               <br><small>Data lama mencatat angka <?php echo (int)$product['pcs_per_crate']; ?> per bundle. Angka ini hanya referensi dan tidak diisikan otomatis.</small>
             <?php endif; ?>
           </div>
-          <form method="post" action="manage_product_bundles.php?id=<?php echo $product_id; ?>" id="legacy-bundle-form" onsubmit="return confirm('Rincian ini akan menjadi sumber kebenaran stok. Pastikan semua isi bundle sudah dicek secara fisik. Lanjutkan?');">
+          <form method="post" action="manage_product_bundles.php?id=<?php echo $product_id; ?>" id="legacy-bundle-form" data-app-confirm="Rincian ini akan menjadi sumber kebenaran stok. Pastikan semua isi bundle sudah dicek secara fisik. Lanjutkan?" data-confirm-title="Konfirmasi Rincian Bundle" data-confirm-button="Ya, Simpan Rincian" data-confirm-class="btn-warning">
             <?php if(function_exists('warehouse_csrf_field')){ echo warehouse_csrf_field(); } ?>
             <div class="row">
               <div class="col-sm-6 form-group">

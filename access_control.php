@@ -142,7 +142,7 @@
                 <div class="access-action-group">
                   <button type="submit" form="<?php echo $role_form_id; ?>" name="rename_role" class="btn btn-warning btn-xs">Simpan</button>
                   <?php if(!$protected): ?>
-                    <button type="submit" form="<?php echo $role_form_id; ?>" name="delete_role" class="btn btn-danger btn-xs" onclick="return confirm('Hapus role ini?');" <?php echo $used > 0 ? 'disabled title="Masih dipakai user"' : ''; ?>>Hapus</button>
+                    <button type="submit" form="<?php echo $role_form_id; ?>" name="delete_role" class="btn btn-danger btn-xs" data-app-confirm="Hapus role ini? Tindakan ini tidak dapat dibatalkan." data-confirm-title="Hapus Role" data-confirm-button="Ya, Hapus" data-confirm-class="btn-danger" <?php echo $used > 0 ? 'disabled title="Masih dipakai user"' : ''; ?>>Hapus</button>
                   <?php endif; ?>
                 </div>
               </td>

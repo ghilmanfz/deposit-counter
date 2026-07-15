@@ -120,7 +120,7 @@
                     <?php endif; ?>
                     <?php if(role_can_action('barang','delete')): ?>
                       <?php if(!$has_bundle_details): ?>
-                        <form method="post" action="delete_product.php" style="display:inline;" onsubmit="return confirm('Hapus barang ini?');">
+                        <form method="post" action="delete_product.php" style="display:inline;" data-app-confirm="Hapus barang ini? Barang yang memiliki stok atau histori tidak dapat dihapus." data-confirm-title="Hapus Barang" data-confirm-button="Ya, Hapus" data-confirm-class="btn-danger">
                           <?php echo warehouse_csrf_field(); ?>
                           <input type="hidden" name="id" value="<?php echo (int)$product['id']; ?>">
                           <button type="submit" class="btn btn-danger btn-xs" title="Hapus" data-toggle="tooltip"><span class="glyphicon glyphicon-trash"></span></button>
