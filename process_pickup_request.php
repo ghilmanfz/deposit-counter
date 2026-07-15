@@ -23,7 +23,7 @@
 
   if($action === 'approve'){
     if(approve_pickup_request($id)){
-      $session->msg('s','Request pengambilan berhasil disetujui. Stok belum dipotong sampai admin menjalankan Proses Pengambilan.');
+      $session->msg('s','Request berhasil disetujui. Stok belum dipotong sampai admin menjalankan proses pengambilan atau pengiriman.');
     } else {
       $session->msg('d','Request gagal disetujui. Pastikan status masih menunggu dan seluruh bundle masih tersedia.');
     }
@@ -36,10 +36,23 @@
       redirect('pickup_requests.php', false);
     }
 
-    if(process_pickup_request_stock($id)){
-      $session->msg('s','Pengambilan berhasil diproses. Stok seluruh bundle telah dimutasi satu kali dan Surat Jalan siap dicetak.');
+    $request = find_pickup_request_details($id);
+    $fulfillment_method = $request ? normalize_pickup_fulfillment_method(isset($request['fulfillment_method']) ? $request['fulfillment_method'] : 'self_pickup') : null;
+    $is_delivery = $fulfillment_method === 'delivery';
+    $transport_data = array();
+    if($is_delivery){
+      $transport_data['driver_name'] = isset($_POST['driver_name']) ? trim((string)$_POST['driver_name']) : '';
+      $transport_data['vehicle_no'] = isset($_POST['vehicle_no']) ? trim((string)$_POST['vehicle_no']) : '';
+      if($transport_data['driver_name'] === '' || $transport_data['vehicle_no'] === ''){
+        $session->msg('d','Nama supir dan pelat kendaraan wajib diisi sebelum pengiriman diproses. Stok belum berubah.');
+        redirect('pickup_requests.php', false);
+      }
+    }
+
+    if(process_pickup_request_stock($id, $transport_data)){
+      $session->msg('s',($is_delivery ? 'Pengiriman' : 'Pengambilan').' berhasil diproses. Stok seluruh bundle telah dimutasi satu kali dan Surat Jalan siap dicetak.');
     } else {
-      $session->msg('d','Pengambilan gagal diproses. Tidak ada pemotongan sebagian; periksa status request dan ketersediaan bundle.');
+      $session->msg('d',($is_delivery ? 'Pengiriman' : 'Pengambilan').' gagal diproses. Tidak ada pemotongan sebagian; periksa status request, transportasi, dan ketersediaan bundle.');
     }
     redirect('pickup_requests.php', false);
   }

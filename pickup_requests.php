@@ -26,7 +26,7 @@
       </div>
       <div class="panel-body">
         <div class="alert alert-info" style="padding:10px 15px;">
-          Stok hanya berubah saat admin menekan <strong>Proses Pengambilan</strong>. Membuka atau mencetak Surat Jalan tidak memotong stok.
+          Stok hanya berubah saat admin memproses pengambilan atau pengiriman. Membuka atau mencetak Surat Jalan tidak memotong stok.
         </div>
         <div class="table-responsive">
           <table class="table table-bordered table-striped">
@@ -37,8 +37,9 @@
                 <?php if(!$client_view): ?><th>Client</th><?php endif; ?>
                 <th>Bundle / Barang</th>
                 <th class="text-center">Kemasan &amp; Isi</th>
-                <th class="text-center">Jadwal Jemput</th>
-                <th>Supir / Kendaraan</th>
+                <th class="text-center">Metode</th>
+                <th class="text-center">Jadwal</th>
+                <th>Transportasi / Tujuan</th>
                 <th class="text-center">Status</th>
                 <th>Keterangan</th>
                 <th class="text-center" style="width:185px;">Aksi</th>
@@ -84,6 +85,10 @@
                     $status_label = 'Dibatalkan';
                     $status_class = 'default';
                   }
+                  $fulfillment_method = normalize_pickup_fulfillment_method(isset($req['fulfillment_method']) ? $req['fulfillment_method'] : 'self_pickup');
+                  if($fulfillment_method === null){ $fulfillment_method = 'self_pickup'; }
+                  $is_delivery = $fulfillment_method === 'delivery';
+                  $process_form_id = 'process-request-'.(int)$req['id'];
                 ?>
                 <tr>
                   <td class="text-center"><?php echo count_id(); ?></td>
@@ -127,8 +132,25 @@
                       </div>
                     <?php endforeach; ?>
                   </td>
+                  <td class="text-center"><span class="label label-<?php echo $is_delivery ? 'info' : 'default'; ?>"><?php echo pickup_fulfillment_label($fulfillment_method); ?></span></td>
                   <td class="text-center"><?php echo remove_junk($req['pickup_date']); ?><br><?php echo substr($req['pickup_time'],0,5); ?></td>
-                  <td><?php echo remove_junk($req['driver_name']); ?><br><small class="text-muted"><?php echo remove_junk($req['vehicle_no']); ?></small></td>
+                  <td>
+                    <?php if($is_delivery): ?>
+                      <strong>Alamat:</strong> <?php echo !empty($req['delivery_address']) ? nl2br(remove_junk($req['delivery_address'])) : '-'; ?>
+                      <?php if(!$client_view && $status === 'approved'): ?>
+                        <div style="margin-top:8px;">
+                          <input type="text" class="form-control input-sm" name="driver_name" form="<?php echo $process_form_id; ?>" placeholder="Supir pengiriman" value="<?php echo !empty($req['driver_name']) ? remove_junk($req['driver_name']) : ''; ?>" required>
+                          <input type="text" class="form-control input-sm" name="vehicle_no" form="<?php echo $process_form_id; ?>" placeholder="Pelat kendaraan" value="<?php echo !empty($req['vehicle_no']) ? remove_junk($req['vehicle_no']) : ''; ?>" required style="margin-top:5px;">
+                        </div>
+                      <?php elseif(!empty($req['driver_name']) || !empty($req['vehicle_no'])): ?>
+                        <br><small class="text-muted"><?php echo remove_junk($req['driver_name']); ?><?php echo (!empty($req['driver_name']) && !empty($req['vehicle_no'])) ? ' / ' : ''; ?><?php echo remove_junk($req['vehicle_no']); ?></small>
+                      <?php else: ?>
+                        <br><small class="text-muted">Transportasi diisi gudang saat proses pengiriman.</small>
+                      <?php endif; ?>
+                    <?php else: ?>
+                      <?php echo !empty($req['driver_name']) ? remove_junk($req['driver_name']) : '-'; ?><br><small class="text-muted"><?php echo !empty($req['vehicle_no']) ? remove_junk($req['vehicle_no']) : '-'; ?></small>
+                    <?php endif; ?>
+                  </td>
                   <td class="text-center"><span class="label label-<?php echo $status_class; ?>"><?php echo $status_label; ?></span></td>
                   <td><?php echo !empty($req['admin_note']) ? remove_junk($req['admin_note']) : '-'; ?></td>
                   <td class="text-center">
@@ -144,11 +166,11 @@
                       <?php endif; ?>
 
                       <?php if(!$client_view && $status === 'approved' && role_can_action('pickup','process')): ?>
-                        <form method="post" action="process_pickup_request.php" style="display:inline;" onsubmit="return confirm('Proses pengambilan bundle terpilih dan potong stok sekarang?');">
+                        <form method="post" action="process_pickup_request.php" id="<?php echo $process_form_id; ?>" style="display:inline;" onsubmit="return confirm('<?php echo $is_delivery ? 'Proses pengiriman' : 'Proses pengambilan'; ?> bundle terpilih dan potong stok sekarang?');">
                           <?php echo warehouse_csrf_field(); ?>
                           <input type="hidden" name="id" value="<?php echo (int)$req['id']; ?>">
                           <input type="hidden" name="action" value="process">
-                          <button type="submit" class="btn btn-warning btn-xs" title="Proses Pengambilan"><span class="glyphicon glyphicon-log-out"></span> Proses Pengambilan</button>
+                          <button type="submit" class="btn btn-warning btn-xs" title="<?php echo $is_delivery ? 'Proses Pengiriman' : 'Proses Pengambilan'; ?>"><span class="glyphicon glyphicon-log-out"></span> <?php echo $is_delivery ? 'Proses Pengiriman' : 'Proses Pengambilan'; ?></button>
                         </form>
                         <a href="reject_pickup_request.php?id=<?php echo (int)$req['id']; ?>" class="btn btn-danger btn-xs" title="Batalkan persetujuan dan lepaskan bundle"><span class="glyphicon glyphicon-remove"></span> Batalkan</a>
                       <?php endif; ?>
@@ -170,7 +192,7 @@
                 </tr>
               <?php endforeach; ?>
               <?php if(empty($requests)): ?>
-                <tr><td colspan="<?php echo $client_view ? 9 : 10; ?>" class="text-center">Belum ada request pengambilan barang.</td></tr>
+                <tr><td colspan="<?php echo $client_view ? 10 : 11; ?>" class="text-center">Belum ada request pengambilan barang.</td></tr>
               <?php endif; ?>
             </tbody>
           </table>

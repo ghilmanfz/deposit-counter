@@ -34,7 +34,7 @@
       redirect('add_pickup_request.php', false);
     }
 
-    $req_fields = array('pickup_date','pickup_time','driver_name','vehicle_no');
+    $req_fields = array('pickup_date','pickup_time','fulfillment_method');
     validate_fields($req_fields);
     if(!empty($errors) && !is_array($errors)){
       $errors = array($errors);
@@ -58,14 +58,28 @@
       $errors[] = 'Layanan bundle belum siap. Hubungi administrator.';
     }
 
+    $fulfillment_method = normalize_pickup_fulfillment_method(isset($_POST['fulfillment_method']) ? $_POST['fulfillment_method'] : '');
+    $driver_name = isset($_POST['driver_name']) ? trim((string)$_POST['driver_name']) : '';
+    $vehicle_no = isset($_POST['vehicle_no']) ? trim((string)$_POST['vehicle_no']) : '';
+    $delivery_address = isset($_POST['delivery_address']) ? trim((string)$_POST['delivery_address']) : '';
+    if($fulfillment_method === null){
+      $errors[] = 'Pilih cara penyerahan barang yang valid.';
+    } elseif($fulfillment_method === 'self_pickup' && ($driver_name === '' || $vehicle_no === '')){
+      $errors[] = 'Nama supir dan pelat kendaraan wajib diisi untuk pengambilan sendiri.';
+    } elseif($fulfillment_method === 'delivery' && $delivery_address === ''){
+      $errors[] = 'Alamat tujuan wajib diisi untuk barang yang dikirim.';
+    }
+
     if(empty($errors)){
       $request_data = array(
         'client_id' => $client_id,
         'bundle_ids' => $bundle_ids,
+        'fulfillment_method' => $fulfillment_method,
         'pickup_date' => $_POST['pickup_date'],
         'pickup_time' => $_POST['pickup_time'],
-        'driver_name' => $_POST['driver_name'],
-        'vehicle_no' => $_POST['vehicle_no']
+        'driver_name' => $driver_name,
+        'vehicle_no' => $vehicle_no,
+        'delivery_address' => $delivery_address
       );
       $request_id = create_multi_bundle_pickup_request($request_data, $bundle_ids);
 
@@ -156,35 +170,53 @@
 
           <div class="alert alert-info" id="selection-summary" style="padding:10px 15px;">Belum ada bundle dipilih.</div>
 
+          <div class="form-group">
+            <label>Cara Penyerahan Barang</label>
+            <div>
+              <label class="radio-inline">
+                <input type="radio" name="fulfillment_method" value="self_pickup" checked> Diambil Sendiri
+              </label>
+              <label class="radio-inline">
+                <input type="radio" name="fulfillment_method" value="delivery"> Dikirim
+              </label>
+            </div>
+          </div>
+
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
-                <label>Tanggal Rencana Penjemputan</label>
+                <label id="schedule-date-label">Tanggal Rencana Penjemputan</label>
                 <input type="date" class="form-control" name="pickup_date" value="<?php echo date('Y-m-d'); ?>" required>
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-group">
-                <label>Jam Rencana Penjemputan</label>
+                <label id="schedule-time-label">Jam Rencana Penjemputan</label>
                 <input type="time" class="form-control" name="pickup_time" value="09:00" required>
               </div>
             </div>
           </div>
-          <p class="help-block">Jadwal bersifat rencana dan akan dikonfirmasi oleh pengelola gudang.</p>
+          <p class="help-block" id="schedule-help">Jadwal penjemputan bersifat rencana dan akan dikonfirmasi oleh pengelola gudang.</p>
 
-          <div class="row">
+          <div class="row" id="self-pickup-fields">
             <div class="col-md-6">
               <div class="form-group">
                 <label>Nama Supir</label>
-                <input type="text" class="form-control" name="driver_name" placeholder="Nama supir" required>
+                <input type="text" class="form-control" id="driver-name" name="driver_name" placeholder="Nama supir" required>
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-group">
                 <label>Pelat Nomor Kendaraan</label>
-                <input type="text" class="form-control" name="vehicle_no" placeholder="Contoh: B 1234 CD" required>
+                <input type="text" class="form-control" id="vehicle-no" name="vehicle_no" placeholder="Contoh: B 1234 CD" required>
               </div>
             </div>
+          </div>
+
+          <div class="form-group" id="delivery-fields" style="display:none;">
+            <label>Alamat Tujuan Pengiriman</label>
+            <textarea class="form-control" id="delivery-address" name="delivery_address" rows="3" placeholder="Masukkan alamat lengkap tujuan pengiriman"></textarea>
+            <p class="help-block">Supir dan kendaraan pengiriman akan diisi oleh pihak gudang saat barang diproses.</p>
           </div>
 
           <button type="submit" name="submit_request" class="btn btn-primary" <?php echo empty($bundles) || !$bundle_backend_ready ? 'disabled="disabled"' : ''; ?>>Kirim Request</button>
@@ -199,6 +231,15 @@
 (function(){
   var checks = document.querySelectorAll('#bundle-table .bundle-checkbox');
   var summary = document.getElementById('selection-summary');
+  var fulfillmentOptions = document.querySelectorAll('input[name="fulfillment_method"]');
+  var selfPickupFields = document.getElementById('self-pickup-fields');
+  var deliveryFields = document.getElementById('delivery-fields');
+  var driverName = document.getElementById('driver-name');
+  var vehicleNo = document.getElementById('vehicle-no');
+  var deliveryAddress = document.getElementById('delivery-address');
+  var scheduleDateLabel = document.getElementById('schedule-date-label');
+  var scheduleTimeLabel = document.getElementById('schedule-time-label');
+  var scheduleHelp = document.getElementById('schedule-help');
 
   function updateSummary(){
     var selected = 0;
@@ -223,10 +264,29 @@
     summary.textContent = selected + ' bundle dipilih' + (parts.length ? ' - Total isi: ' + parts.join(', ') : '');
   }
 
+  function updateFulfillmentFields(){
+    var selected = document.querySelector('input[name="fulfillment_method"]:checked');
+    var isDelivery = selected && selected.value === 'delivery';
+    selfPickupFields.style.display = isDelivery ? 'none' : '';
+    deliveryFields.style.display = isDelivery ? '' : 'none';
+    driverName.required = !isDelivery;
+    vehicleNo.required = !isDelivery;
+    deliveryAddress.required = !!isDelivery;
+    scheduleDateLabel.textContent = isDelivery ? 'Tanggal Rencana Pengiriman' : 'Tanggal Rencana Penjemputan';
+    scheduleTimeLabel.textContent = isDelivery ? 'Jam Rencana Pengiriman' : 'Jam Rencana Penjemputan';
+    scheduleHelp.textContent = isDelivery
+      ? 'Jadwal pengiriman bersifat rencana dan akan dikonfirmasi oleh pengelola gudang.'
+      : 'Jadwal penjemputan bersifat rencana dan akan dikonfirmasi oleh pengelola gudang.';
+  }
+
   for(var i = 0; i < checks.length; i++){
     checks[i].addEventListener('change', updateSummary);
   }
+  for(var optionIndex = 0; optionIndex < fulfillmentOptions.length; optionIndex++){
+    fulfillmentOptions[optionIndex].addEventListener('change', updateFulfillmentFields);
+  }
   updateSummary();
+  updateFulfillmentFields();
 })();
 </script>
 <?php include_once('layouts/footer.php'); ?>

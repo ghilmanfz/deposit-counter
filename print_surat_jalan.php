@@ -12,7 +12,7 @@
   }
 
   if($order['movement_type'] === 'out' && (int)$order['stock_processed'] !== 1){
-    $session->msg('d','Pengambilan belum diproses. Proses pengambilan dari halaman Request sebelum mencetak Surat Jalan.');
+    $session->msg('d','Penyerahan barang belum diproses. Proses request dari halaman Request sebelum mencetak Surat Jalan.');
     redirect('pickup_requests.php', false);
   }
 
@@ -51,6 +51,9 @@
       'legacy_quantity' => isset($order['quantity']) ? (int)$order['quantity'] : 0
     );
   }
+  $fulfillment_method = normalize_pickup_fulfillment_method(isset($order['fulfillment_method']) ? $order['fulfillment_method'] : 'self_pickup');
+  if($fulfillment_method === null){ $fulfillment_method = 'self_pickup'; }
+  $is_delivery = $fulfillment_method === 'delivery';
 ?>
 <!doctype html>
 <html lang="id">
@@ -86,10 +89,12 @@
       <div class="col-xs-6">
         <p><strong>Client:</strong> <?php echo !empty($order['client_name']) ? remove_junk($order['client_name']) : '-'; ?></p>
         <p><strong>Jenis Mutasi:</strong> <?php echo delivery_movement_label($order['movement_type']); ?></p>
+        <?php if(!empty($order['request_no'])): ?><p><strong>Metode:</strong> <?php echo pickup_fulfillment_label($fulfillment_method); ?></p><?php endif; ?>
       </div>
       <div class="col-xs-6">
         <p><strong>Penerima:</strong> <?php echo !empty($order['recipient']) ? remove_junk($order['recipient']) : '-'; ?></p>
         <p><strong>Driver/Kendaraan:</strong> <?php echo !empty($order['driver_name']) ? remove_junk($order['driver_name']) : '-'; ?><?php echo !empty($order['vehicle_no']) ? ' / '.remove_junk($order['vehicle_no']) : ''; ?></p>
+        <?php if($is_delivery): ?><p><strong>Alamat Tujuan:</strong> <?php echo !empty($order['delivery_address']) ? nl2br(remove_junk($order['delivery_address'])) : '-'; ?></p><?php endif; ?>
       </div>
     </div>
 

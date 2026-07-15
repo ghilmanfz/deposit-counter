@@ -282,6 +282,31 @@ try {
   $drift_state = bundle_smoke_row("SELECT status,processed_at FROM pickup_requests WHERE id='".(int)$drift_request."'");
   $drift_item = bundle_smoke_row("SELECT status FROM pickup_request_items WHERE pickup_request_id='".(int)$drift_request."'");
   bundle_smoke_assert($drift_state['status'] === 'auto_rejected' && !empty($drift_state['processed_at']) && $drift_item['status'] === 'released', 'Reservation drift remained pending or kept its item reserved.');
+
+  $invalid_delivery_data = $request_data;
+  $invalid_delivery_data['fulfillment_method'] = 'delivery';
+  $invalid_delivery_data['driver_name'] = '';
+  $invalid_delivery_data['vehicle_no'] = '';
+  $invalid_delivery_data['delivery_address'] = '';
+  bundle_smoke_assert(create_multi_bundle_pickup_request($invalid_delivery_data, array($bundles_b[0])) === false, 'Delivery request without an address was accepted.');
+
+  $delivery_request_data = $invalid_delivery_data;
+  $delivery_request_data['delivery_address'] = 'Jl. Smoke Test No. 1';
+  $delivery_request = create_multi_bundle_pickup_request($delivery_request_data, array($bundles_b[0]));
+  bundle_smoke_assert((int)$delivery_request > 0, 'Delivery-method request was not created.');
+  $delivery_request_row = bundle_smoke_row("SELECT fulfillment_method,delivery_address,driver_name,vehicle_no FROM pickup_requests WHERE id='".(int)$delivery_request."'");
+  bundle_smoke_assert($delivery_request_row['fulfillment_method'] === 'delivery' && $delivery_request_row['delivery_address'] === 'Jl. Smoke Test No. 1' && $delivery_request_row['driver_name'] === '' && $delivery_request_row['vehicle_no'] === '', 'Delivery request transport fields were stored incorrectly.');
+  bundle_smoke_assert(approve_pickup_request($delivery_request) === true, 'Delivery request approval failed.');
+  $delivery_before = bundle_smoke_row("SELECT quantity FROM products WHERE id='".(int)$product_ids[1]."'");
+  bundle_smoke_assert(process_pickup_request_stock($delivery_request) === false, 'Delivery was processed without warehouse driver and vehicle data.');
+  $delivery_failed_state = bundle_smoke_row("SELECT r.status,d.stock_processed FROM pickup_requests r INNER JOIN delivery_orders d ON d.pickup_request_id=r.id WHERE r.id='".(int)$delivery_request."'");
+  $delivery_after_failed_process = bundle_smoke_row("SELECT quantity FROM products WHERE id='".(int)$product_ids[1]."'");
+  bundle_smoke_assert($delivery_failed_state['status'] === 'approved' && (int)$delivery_failed_state['stock_processed'] === 0 && (int)$delivery_after_failed_process['quantity'] === (int)$delivery_before['quantity'], 'Failed delivery processing changed stock or request state.');
+  bundle_smoke_assert(process_pickup_request_stock($delivery_request, array('driver_name'=>'Warehouse Driver','vehicle_no'=>'B 9876 WH')) === true, 'Delivery processing with warehouse transport failed.');
+  $delivery_completed = bundle_smoke_row("SELECT r.status,r.driver_name,r.vehicle_no,d.stock_processed,d.driver_name AS order_driver,d.vehicle_no AS order_vehicle FROM pickup_requests r INNER JOIN delivery_orders d ON d.pickup_request_id=r.id WHERE r.id='".(int)$delivery_request."'");
+  $delivery_after = bundle_smoke_row("SELECT quantity FROM products WHERE id='".(int)$product_ids[1]."'");
+  bundle_smoke_assert($delivery_completed['status'] === 'completed' && (int)$delivery_completed['stock_processed'] === 1 && $delivery_completed['driver_name'] === 'Warehouse Driver' && $delivery_completed['vehicle_no'] === 'B 9876 WH' && $delivery_completed['order_driver'] === 'Warehouse Driver' && $delivery_completed['order_vehicle'] === 'B 9876 WH' && (int)$delivery_after['quantity'] === 0, 'Completed delivery did not atomically persist transport and stock data.');
+  bundle_smoke_assert(process_pickup_request_stock($delivery_request, array('driver_name'=>'Warehouse Driver','vehicle_no'=>'B 9876 WH')) === true, 'Repeated delivery processing was not idempotent.');
 } catch (Throwable $e) {
   $failure = $e;
 } finally {

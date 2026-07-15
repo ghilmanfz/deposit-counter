@@ -24,7 +24,7 @@
       </div>
       <div class="panel-body">
         <div class="alert alert-info" style="padding:10px 15px;">
-          Surat Jalan hanya dapat dicetak setelah pengambilan selesai diproses. Membuka dokumen tidak mengubah stok.
+          Surat Jalan hanya dapat dicetak setelah pengambilan atau pengiriman selesai diproses. Membuka dokumen tidak mengubah stok.
         </div>
         <div class="table-responsive">
           <table class="table table-bordered table-striped">
@@ -73,12 +73,16 @@
                     );
                   }
                   $stock_processed = isset($order['stock_processed']) ? (int)$order['stock_processed'] : 0;
+                  $fulfillment_method = normalize_pickup_fulfillment_method(isset($order['fulfillment_method']) ? $order['fulfillment_method'] : 'self_pickup');
+                  if($fulfillment_method === null){ $fulfillment_method = 'self_pickup'; }
+                  $is_delivery = $fulfillment_method === 'delivery';
                 ?>
                 <tr>
                   <td class="text-center"><?php echo count_id(); ?></td>
                   <td>
                     <strong><?php echo remove_junk($order['document_no']); ?></strong>
                     <?php if(!empty($order['request_no'])): ?><br><small class="text-muted">Request: <?php echo remove_junk($order['request_no']); ?></small><?php endif; ?>
+                    <?php if(!empty($order['request_no'])): ?><br><small class="text-muted">Metode: <?php echo pickup_fulfillment_label($fulfillment_method); ?></small><?php endif; ?>
                   </td>
                   <?php if(!$client_view): ?><td><?php echo !empty($order['client_name']) ? remove_junk($order['client_name']) : '-'; ?></td><?php endif; ?>
                   <td>
@@ -116,7 +120,7 @@
                     <?php if($order['movement_type'] !== 'out'): ?>
                       <span class="label label-success">Sudah dicatat</span>
                     <?php elseif($stock_processed === 1): ?>
-                      <span class="label label-primary">Pengambilan selesai</span>
+                      <span class="label label-primary"><?php echo $is_delivery ? 'Pengiriman selesai' : 'Pengambilan selesai'; ?></span>
                     <?php else: ?>
                       <span class="label label-warning">Menunggu proses</span>
                     <?php endif; ?>
@@ -127,7 +131,7 @@
                     <?php if($can_print_order): ?>
                       <a href="print_surat_jalan.php?id=<?php echo (int)$order['id']; ?>" class="btn btn-info btn-xs" title="Lihat / Cetak Surat Jalan" data-toggle="tooltip"><span class="glyphicon glyphicon-print"></span></a>
                     <?php else: ?>
-                      <span class="text-muted" title="Proses pengambilan dari halaman Request terlebih dahulu">-</span>
+                      <span class="text-muted" title="Proses request dari halaman Request terlebih dahulu">-</span>
                     <?php endif; ?>
                   </td>
                 </tr>

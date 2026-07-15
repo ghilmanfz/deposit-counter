@@ -1038,7 +1038,7 @@ function tableExists($table){
       $client_id = $viewer_client_id;
     }
 
-    $sql  = "SELECT d.*,u.name AS client_name,p.name AS product_name,un.name AS unit_name,bu.name AS base_unit_name,actor.name AS created_by_name,r.request_no ";
+    $sql  = "SELECT d.*,u.name AS client_name,p.name AS product_name,un.name AS unit_name,bu.name AS base_unit_name,actor.name AS created_by_name,r.request_no,r.fulfillment_method,r.delivery_address ";
     $sql .= "FROM delivery_orders d ";
     $sql .= "LEFT JOIN users u ON u.id = d.client_id ";
     $sql .= "LEFT JOIN products p ON p.id = d.product_id ";
@@ -1066,7 +1066,7 @@ function tableExists($table){
     }
 
     $sql  = "SELECT d.*,u.name AS client_name,u.username AS client_username,p.name AS product_name,p.grade,p.no_batch,p.tebal,p.lebar,p.panjang,un.name AS unit_name,bu.name AS base_unit_name,";
-    $sql .= "actor.name AS created_by_name,r.request_no ";
+    $sql .= "actor.name AS created_by_name,r.request_no,r.fulfillment_method,r.delivery_address ";
     $sql .= "FROM delivery_orders d ";
     $sql .= "LEFT JOIN users u ON u.id = d.client_id ";
     $sql .= "LEFT JOIN products p ON p.id = d.product_id ";
@@ -1351,10 +1351,12 @@ function ensure_warehouse_schema($force = false){
     product_id int(11) unsigned NOT NULL,
     unit_id int(11) unsigned DEFAULT NULL,
     quantity int(11) NOT NULL,
+    fulfillment_method varchar(20) NOT NULL DEFAULT 'self_pickup',
     pickup_date date NOT NULL,
     pickup_time time NOT NULL,
     driver_name varchar(100) NOT NULL,
     vehicle_no varchar(50) NOT NULL,
+    delivery_address text DEFAULT NULL,
     status varchar(30) NOT NULL DEFAULT 'pending',
     admin_note text DEFAULT NULL,
     processed_by int(11) unsigned DEFAULT NULL,
@@ -1367,6 +1369,15 @@ function ensure_warehouse_schema($force = false){
     KEY unit_id (unit_id),
     KEY status (status)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3");
+
+  if(tableExists('pickup_requests')){
+    if(!column_exists('pickup_requests','fulfillment_method')){
+      $db->query_safe("ALTER TABLE pickup_requests ADD fulfillment_method varchar(20) NOT NULL DEFAULT 'self_pickup' AFTER quantity");
+    }
+    if(!column_exists('pickup_requests','delivery_address')){
+      $db->query_safe("ALTER TABLE pickup_requests ADD delivery_address text DEFAULT NULL AFTER vehicle_no");
+    }
+  }
 
   if(tableExists('products') && !column_exists('products','base_unit_id')){
     // Nullable by design: historical rows are never guessed or converted.
@@ -2440,6 +2451,15 @@ function pickup_status_class($status){
   return 'warning';
 }
 
+function normalize_pickup_fulfillment_method($method){
+  $method = trim((string)$method);
+  return in_array($method, array('self_pickup','delivery'), true) ? $method : null;
+}
+
+function pickup_fulfillment_label($method){
+  return normalize_pickup_fulfillment_method($method) === 'delivery' ? 'Dikirim' : 'Diambil Sendiri';
+}
+
 function find_pickup_requests($client_id = null){
   global $db;
   ensure_consignment_tables();
@@ -2495,11 +2515,15 @@ function insert_pickup_request_header_locked($data, $product_id, $unit_id, $quan
   $pickup_time = $db->escape($data['pickup_time']);
   $driver_name = $db->escape(trim((string)$data['driver_name']));
   $vehicle_no = $db->escape(trim((string)$data['vehicle_no']));
+  $fulfillment_method = normalize_pickup_fulfillment_method(isset($data['fulfillment_method']) ? $data['fulfillment_method'] : 'self_pickup');
+  if($fulfillment_method === null){ throw new InvalidArgumentException('Invalid pickup fulfillment method.'); }
+  $delivery_address = isset($data['delivery_address']) ? trim((string)$data['delivery_address']) : '';
+  $delivery_address_value = $delivery_address !== '' ? "'".$db->escape($delivery_address)."'" : 'NULL';
   $request_no = $db->escape(!empty($data['request_no']) ? $data['request_no'] : generate_consignment_number('REQ'));
   $unit_value = (int)$unit_id > 0 ? "'".(int)$unit_id."'" : 'NULL';
   $note_value = $admin_note !== null && trim((string)$admin_note) !== '' ? "'".$db->escape($admin_note)."'" : 'NULL';
   $now = make_date();
-  $db->query_or_throw("INSERT INTO pickup_requests (request_no,client_id,product_id,unit_id,quantity,pickup_date,pickup_time,driver_name,vehicle_no,status,admin_note,created_at) VALUES ('{$request_no}','{$client_id}','".(int)$product_id."',{$unit_value},'".(int)$quantity."','{$pickup_date}','{$pickup_time}','{$driver_name}','{$vehicle_no}','".$db->escape($status)."',{$note_value},'{$now}')");
+  $db->query_or_throw("INSERT INTO pickup_requests (request_no,client_id,product_id,unit_id,quantity,fulfillment_method,pickup_date,pickup_time,driver_name,vehicle_no,delivery_address,status,admin_note,created_at) VALUES ('{$request_no}','{$client_id}','".(int)$product_id."',{$unit_value},'".(int)$quantity."','{$fulfillment_method}','{$pickup_date}','{$pickup_time}','{$driver_name}','{$vehicle_no}',{$delivery_address_value},'".$db->escape($status)."',{$note_value},'{$now}')");
   return $db->insert_id();
 }
 
@@ -2514,10 +2538,24 @@ function create_multi_bundle_pickup_request($data = array(), $bundle_ids = array
   $pickup_time = !empty($data['pickup_time']) ? $data['pickup_time'] : '00:00';
   $driver_name = isset($data['driver_name']) ? trim((string)$data['driver_name']) : '';
   $vehicle_no = isset($data['vehicle_no']) ? trim((string)$data['vehicle_no']) : '';
-  if($client_id <= 0 || $bundle_ids === false || $driver_name === '' || $vehicle_no === '' || !valid_pickup_date_time($pickup_date, $pickup_time)){ return false; }
+  $fulfillment_method = normalize_pickup_fulfillment_method(isset($data['fulfillment_method']) ? $data['fulfillment_method'] : 'self_pickup');
+  $delivery_address = isset($data['delivery_address']) ? trim((string)$data['delivery_address']) : '';
+  $self_pickup_invalid = $fulfillment_method === 'self_pickup' && ($driver_name === '' || $vehicle_no === '');
+  $delivery_invalid = $fulfillment_method === 'delivery' && $delivery_address === '';
+  if($client_id <= 0 || $bundle_ids === false || $fulfillment_method === null || $self_pickup_invalid || $delivery_invalid || !valid_pickup_date_time($pickup_date, $pickup_time)){ return false; }
+  if($fulfillment_method === 'delivery'){
+    $driver_name = '';
+    $vehicle_no = '';
+  } else {
+    $delivery_address = '';
+  }
   $data['client_id'] = $client_id;
   $data['pickup_date'] = $pickup_date;
   $data['pickup_time'] = $pickup_time;
+  $data['fulfillment_method'] = $fulfillment_method;
+  $data['delivery_address'] = $delivery_address;
+  $data['driver_name'] = $driver_name;
+  $data['vehicle_no'] = $vehicle_no;
   $id_list = implode(',', $bundle_ids);
   // Establish deterministic product -> bundle lock order before mutating.
   $seed_result = $db->query("SELECT DISTINCT product_id FROM inventory_bundles WHERE id IN ({$id_list}) ORDER BY product_id ASC");
@@ -2591,8 +2629,18 @@ function create_pickup_request($data = array()){
   $data['pickup_time'] = !empty($data['pickup_time']) ? $data['pickup_time'] : '00:00';
   $data['driver_name'] = isset($data['driver_name']) ? trim((string)$data['driver_name']) : '';
   $data['vehicle_no'] = isset($data['vehicle_no']) ? trim((string)$data['vehicle_no']) : '';
+  $data['fulfillment_method'] = normalize_pickup_fulfillment_method(isset($data['fulfillment_method']) ? $data['fulfillment_method'] : 'self_pickup');
+  $data['delivery_address'] = isset($data['delivery_address']) ? trim((string)$data['delivery_address']) : '';
   $data['client_id'] = $client_id;
-  if($client_id <= 0 || $product_id <= 0 || $quantity <= 0 || $data['driver_name'] === '' || $data['vehicle_no'] === '' || !valid_pickup_date_time($data['pickup_date'], $data['pickup_time'])){ return false; }
+  $self_pickup_invalid = $data['fulfillment_method'] === 'self_pickup' && ($data['driver_name'] === '' || $data['vehicle_no'] === '');
+  $delivery_invalid = $data['fulfillment_method'] === 'delivery' && $data['delivery_address'] === '';
+  if($client_id <= 0 || $product_id <= 0 || $quantity <= 0 || $data['fulfillment_method'] === null || $self_pickup_invalid || $delivery_invalid || !valid_pickup_date_time($data['pickup_date'], $data['pickup_time'])){ return false; }
+  if($data['fulfillment_method'] === 'delivery'){
+    $data['driver_name'] = '';
+    $data['vehicle_no'] = '';
+  } else {
+    $data['delivery_address'] = '';
+  }
   try{
     $db->begin_transaction();
     $product_result = $db->query_or_throw("SELECT * FROM products WHERE id='{$product_id}' LIMIT 1 FOR UPDATE");
@@ -2749,7 +2797,10 @@ function approve_pickup_request($id){
       $scheduled = $db->escape($request['pickup_date'].' '.$request['pickup_time']);
       $driver = $db->escape($request['driver_name']);
       $vehicle = $db->escape($request['vehicle_no']);
-      $db->query_or_throw("INSERT INTO delivery_orders (document_no,movement_type,client_id,product_id,quantity,document_date,recipient,driver_name,vehicle_no,reference_type,reference_id,pickup_request_id,scheduled_at,stock_processed,stock_processed_at,note,created_by,created_at) VALUES ('{$document_no}','out','".(int)$request['client_id']."','".(int)$request['product_id']."','".(int)$request['quantity']."','".date('Y-m-d')."','{$recipient}','{$driver}','{$vehicle}','request_pengambilan','{$id}','{$id}','{$scheduled}','0',NULL,'Surat jalan dari request pengambilan barang.',{$created_by_value},'{$now}')");
+      $fulfillment_note = normalize_pickup_fulfillment_method(isset($request['fulfillment_method']) ? $request['fulfillment_method'] : 'self_pickup') === 'delivery'
+        ? 'Surat jalan pengiriman barang dari request pelanggan.'
+        : 'Surat jalan pengambilan barang oleh pelanggan.';
+      $db->query_or_throw("INSERT INTO delivery_orders (document_no,movement_type,client_id,product_id,quantity,document_date,recipient,driver_name,vehicle_no,reference_type,reference_id,pickup_request_id,scheduled_at,stock_processed,stock_processed_at,note,created_by,created_at) VALUES ('{$document_no}','out','".(int)$request['client_id']."','".(int)$request['product_id']."','".(int)$request['quantity']."','".date('Y-m-d')."','{$recipient}','{$driver}','{$vehicle}','request_pengambilan','{$id}','{$id}','{$scheduled}','0',NULL,'".$db->escape($fulfillment_note)."',{$created_by_value},'{$now}')");
       $delivery_id = $db->insert_id();
     }
     $detail_check = $db->query_or_throw("SELECT COUNT(*) AS total FROM delivery_order_items WHERE delivery_order_id='{$delivery_id}'");
@@ -2880,7 +2931,7 @@ function cancel_pickup_request($id, $client_id = null, $reason = 'Request dibata
   }
 }
 
-function process_delivery_order_stock($delivery_id){
+function process_delivery_order_stock($delivery_id, $transport_data = array()){
   global $db;
   ensure_consignment_tables();
   ensure_warehouse_schema();
@@ -2911,6 +2962,21 @@ function process_delivery_order_stock($delivery_id){
     if($order['movement_type'] !== 'out'){ $db->commit(); return true; }
     if($request){
       if($request['status'] !== 'approved'){ $db->rollback(); return false; }
+      $fulfillment_method = normalize_pickup_fulfillment_method(isset($request['fulfillment_method']) ? $request['fulfillment_method'] : 'self_pickup');
+      if($fulfillment_method === null){ $db->rollback(); return false; }
+      if($fulfillment_method === 'delivery'){
+        $driver_name = isset($transport_data['driver_name']) ? trim((string)$transport_data['driver_name']) : trim((string)$request['driver_name']);
+        $vehicle_no = isset($transport_data['vehicle_no']) ? trim((string)$transport_data['vehicle_no']) : trim((string)$request['vehicle_no']);
+        if($driver_name === '' || $vehicle_no === '' || trim((string)$request['delivery_address']) === ''){ $db->rollback(); return false; }
+        $driver_value = $db->escape($driver_name);
+        $vehicle_value = $db->escape($vehicle_no);
+        $db->query_or_throw("UPDATE pickup_requests SET driver_name='{$driver_value}',vehicle_no='{$vehicle_value}' WHERE id='{$request_id}' LIMIT 1");
+        $db->query_or_throw("UPDATE delivery_orders SET driver_name='{$driver_value}',vehicle_no='{$vehicle_value}' WHERE id='{$delivery_id}' AND stock_processed='0' LIMIT 1");
+        $request['driver_name'] = $driver_name;
+        $request['vehicle_no'] = $vehicle_no;
+        $order['driver_name'] = $driver_name;
+        $order['vehicle_no'] = $vehicle_no;
+      }
       $duplicate_result = $db->query_or_throw("SELECT COUNT(*) AS total FROM delivery_orders WHERE pickup_request_id='{$request_id}'");
       $duplicate = $db->fetch_assoc($duplicate_result);
       if(!$duplicate || (int)$duplicate['total'] !== 1){ $db->rollback(); return false; }
@@ -3041,7 +3107,7 @@ function process_delivery_order_stock($delivery_id){
   }
 }
 
-function process_pickup_request_stock($request_id){
+function process_pickup_request_stock($request_id, $transport_data = array()){
   global $db;
   ensure_consignment_tables();
   ensure_warehouse_schema();
@@ -3050,7 +3116,7 @@ function process_pickup_request_stock($request_id){
   $ids = array();
   while($row = $db->fetch_assoc($result)){ $ids[] = (int)$row['id']; }
   if(count($ids) !== 1){ return false; }
-  return process_delivery_order_stock($ids[0]);
+  return process_delivery_order_stock($ids[0], $transport_data);
 }
 
 function fulfill_delivery_order($delivery_id){

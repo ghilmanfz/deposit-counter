@@ -161,11 +161,12 @@ uploads/         File upload produk, user, defect, dan surat jalan
 4. Sistem mencatat stok awal, riwayat stok masuk, dan surat jalan masuk.
 5. Klien dapat melihat barang, stok, tagihan, surat jalan, dan mengajukan request pengambilan.
 6. Klien memilih satu atau beberapa bundle utuh; satu request boleh berisi beberapa jenis barang.
-7. Sistem mereservasi bundle terpilih agar tidak dapat dipilih oleh request lain.
-8. Admin menyetujui atau menolak request. Penolakan/pembatalan melepaskan reservasi.
-9. Admin menekan **Proses Pengambilan** saat barang benar-benar diserahkan. Pada tahap ini stok semua produk terkait berkurang dalam satu transaksi.
-10. Surat Jalan dapat dilihat atau dicetak setelah proses selesai tanpa memotong stok kembali.
-11. Admin mengelola billing/invoice dan laporan pengambilan.
+7. Klien memilih barang **diambil sendiri** atau **dikirim**. Pengambilan sendiri mewajibkan data supir/kendaraan pelanggan, sedangkan pengiriman mewajibkan alamat tujuan dan data transportasi gudang saat proses.
+8. Sistem mereservasi bundle terpilih agar tidak dapat dipilih oleh request lain.
+9. Admin menyetujui atau menolak request. Penolakan/pembatalan melepaskan reservasi.
+10. Admin menekan **Proses Pengambilan** atau **Proses Pengiriman** saat barang benar-benar diserahkan. Pada tahap ini stok semua produk terkait berkurang dalam satu transaksi.
+11. Surat Jalan dapat dilihat atau dicetak setelah proses selesai tanpa memotong stok kembali.
+12. Admin mengelola billing/invoice dan laporan pengambilan.
 
 ## Model Stok Bundle
 
